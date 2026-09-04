@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Maximize2, X, Video, AlertTriangle, VideoOff } from 'lucide-react';
+import { getApiUrl } from '../config';
 
 export default function CameraFeedMonitor({ intersections = [], onTriggerVisionDetection, onReturnHome }) {
   const [activeSlide, setActiveSlide] = useState('I1');
@@ -209,7 +210,7 @@ export default function CameraFeedMonitor({ intersections = [], onTriggerVisionD
 
   // Poll backend for vision detections
   const fetchVisionStatus = () => {
-    fetch('/api/vision/cameras')
+    fetch(getApiUrl('/api/vision/cameras'))
       .then(res => res.json())
       .then(data => {
         if (data.cameras) {

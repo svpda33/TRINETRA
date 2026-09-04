@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Bot, CheckCircle2, XCircle, AlertTriangle, ShieldCheck, Play } from 'lucide-react';
+import { getApiUrl } from '../config';
 
 export default function AIReasoningPanel() {
   const [aiData, setAiData] = useState(null);
@@ -11,7 +12,7 @@ export default function AIReasoningPanel() {
     setErrorState(null);
     setAiData(null);
 
-    fetch('/api/ai/optimize', { method: 'POST' })
+    fetch(getApiUrl('/api/ai/optimize'), { method: 'POST' })
       .then(res => res.json())
       .then(resData => {
         if (resData.status === 'unconfigured' || resData.data?.status === 'unconfigured') {

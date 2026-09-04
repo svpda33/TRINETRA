@@ -10,6 +10,7 @@ import SafetyTestPanel from './components/SafetyTestPanel';
 import CameraFeedMonitor from './components/CameraFeedMonitor';
 import AIReasoningPanel from './components/AIReasoningPanel';
 import SystemInformation from './components/SystemInformation';
+import { getApiUrl, getWsUrl } from './config';
 
 export default function App() {
   const [backendConnected, setBackendConnected] = useState(false);
@@ -21,7 +22,7 @@ export default function App() {
   const wsRef = useRef(null);
 
   const fetchState = () => {
-    fetch('/api/simulation/state')
+    fetch(getApiUrl('/api/simulation/state'))
       .then(res => res.json())
       .then(data => {
         if (data.topology?.intersections) {
@@ -40,7 +41,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    fetch('/api/health')
+    fetch(getApiUrl('/api/health'))
       .then(res => res.json())
       .then(data => {
         if (data.status === 'ok') {
@@ -53,8 +54,7 @@ export default function App() {
 
     const intervalId = setInterval(fetchState, 1000);
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.hostname}:8000/api/ws/telemetry`;
+    const wsUrl = getWsUrl();
     
     try {
       const ws = new WebSocket(wsUrl);
@@ -87,16 +87,16 @@ export default function App() {
   }, []);
 
   const handleStartSim = () => {
-    fetch('/api/simulation/start', { method: 'POST' }).then(fetchState);
+    fetch(getApiUrl('/api/simulation/start'), { method: 'POST' }).then(fetchState);
   };
 
   const handleStopSim = () => {
-    fetch('/api/simulation/stop', { method: 'POST' }).then(fetchState);
+    fetch(getApiUrl('/api/simulation/stop'), { method: 'POST' }).then(fetchState);
   };
 
   const handleClearEvents = () => {
-    fetch('/api/simulation/clear', { method: 'POST' })
-      .then(() => fetch('/api/vision/clear-detections', { method: 'POST' }))
+    fetch(getApiUrl('/api/simulation/clear'), { method: 'POST' })
+      .then(() => fetch(getApiUrl('/api/vision/clear-detections'), { method: 'POST' }))
       .then(fetchState);
   };
 

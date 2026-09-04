@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ShieldCheck, CheckCircle2, XCircle } from 'lucide-react';
+import { getApiUrl } from '../config';
 
 export default function SafetyTestPanel() {
   const [testResults, setTestResults] = useState(null);
@@ -7,7 +8,7 @@ export default function SafetyTestPanel() {
 
   const handleRunTests = () => {
     setRunning(true);
-    fetch('/api/safety/run-tests')
+    fetch(getApiUrl('/api/safety/run-tests'))
       .then(res => res.json())
       .then(data => {
         if (data.results) {
