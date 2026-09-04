@@ -1,0 +1,1 @@
+"""SyncSignal Domain Models."""
