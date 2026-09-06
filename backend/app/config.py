@@ -1,8 +1,10 @@
 """Centralized Application Configuration & Priority Hierarchy Settings."""
 
 import os
+import json
 from pydantic_settings import BaseSettings
-from typing import List, Dict, Any
+from pydantic import field_validator
+from typing import List, Dict, Any, Union
 from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
@@ -11,10 +13,10 @@ class Settings(BaseSettings):
     """System settings loaded from environment variables."""
     PROJECT_NAME: str = "Trinetra"
     PROJECT_VERSION: str = "1.0.0"
-    ENVIRONMENT: str = "development"
-    HOST: str = "0.0.0.0"
-    PORT: int = 8000
-    LOG_LEVEL: str = "INFO"
+    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
+    HOST: str = os.getenv("HOST", "0.0.0.0")
+    PORT: int = int(os.getenv("PORT", 8000))
+    LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
     
     PRIORITY_HIERARCHY: Dict[str, Dict[str, Any]] = {
         "EMERGENCY_VEHICLE": {
@@ -58,11 +60,33 @@ class Settings(BaseSettings):
     YELLOW_TIME: int = 3
     ALL_RED_TIME: int = 2
 
-    CORS_ORIGINS: List[str] = [
+    CORS_ORIGINS: Union[List[str], str] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://localhost:3000",
+        "https://*.vercel.app",
+        "https://*.railway.app",
+        "*"
     ]
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v: Any) -> List[str]:
+        if isinstance(v, str):
+            v = v.strip()
+            if not v or v == "*":
+                return ["*"]
+            if v.startswith("[") and v.endswith("]"):
+                try:
+                    parsed = json.loads(v)
+                    if isinstance(parsed, list):
+                        return [str(item).strip() for item in parsed]
+                except Exception:
+                    pass
+            return [origin.strip() for origin in v.split(",") if origin.strip()]
+        elif isinstance(v, list):
+            return [str(item).strip() for item in v]
+        return ["*"]
 
     class Config:
         env_file = ".env"

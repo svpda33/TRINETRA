@@ -30,11 +30,24 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=settings.CORS_ORIGINS if settings.CORS_ORIGINS != ["*"] else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/", tags=["Root"])
+async def root():
+    """Root endpoint providing deployment and health status."""
+    return {
+        "status": "online",
+        "app": settings.PROJECT_NAME,
+        "version": settings.PROJECT_VERSION,
+        "environment": settings.ENVIRONMENT,
+        "docs": "/docs",
+        "health": "/api/health",
+        "telemetry_ws": "/api/ws/telemetry"
+    }
 
 app.include_router(health_router, prefix="/api")
 app.include_router(intersections_router, prefix="/api")
@@ -47,7 +60,7 @@ app.include_router(safety_router)
 
 @app.on_event("startup")
 async def startup_event():
-    logger.info(f"Starting {settings.PROJECT_NAME} v{settings.PROJECT_VERSION} in {settings.ENVIRONMENT} mode.")
+    logger.info(f"Starting {settings.PROJECT_NAME} v{settings.PROJECT_VERSION} in {settings.ENVIRONMENT} mode on port {settings.PORT}.")
     logger.info(f"Priority Hierarchy initialized with {len(settings.PRIORITY_HIERARCHY)} levels.")
     simulation_engine.start()
 

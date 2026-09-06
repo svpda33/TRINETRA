@@ -9,7 +9,8 @@ by DeterministicSafetyValidator before any signal modification is executed.
 import os
 import json
 import logging
-import urllib.request
+import asyncio
+import httpx
 from typing import Dict, Any, List, Optional
 from app.config import settings
 from app.services.safety_validator import safety_validator
@@ -56,7 +57,7 @@ class AICoordinatorService:
         topology = simulation_engine.get_topology()
         active_events = simulation_engine.active_events
         
-        # Build structured network telemetry state payload
+        # Build structured network telemetry state payload (lightweight, no video/binary data)
         prompt_data = {
             "network_nodes": [
                 {
@@ -80,7 +81,7 @@ class AICoordinatorService:
                 "status": "failed",
                 "featherless_api_active": True,
                 "error": "AI OPTIMIZATION FAILED",
-                "message": f"Featherless API request encountered an error: {str(e)}",
+                "message": str(e),
                 "llm_model": self.model
             }
 
@@ -121,7 +122,12 @@ class AICoordinatorService:
         }
 
     async def _call_featherless_api(self, prompt_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Calls Featherless API chat completion endpoint."""
+        """
+        Calls Featherless API chat completion endpoint with retry handling and distinct timeouts.
+        - Connect timeout: 10 seconds
+        - Read timeout: 120 seconds
+        - Max retries: 2 (total 3 attempts for transient errors/timeouts)
+        """
         url = "https://api.featherless.ai/v1/chat/completions"
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -134,7 +140,7 @@ class AICoordinatorService:
         system_instructions = (
             "You are the SyncSignal Autonomous Traffic Coordinator AI Agent. "
             "Analyze live intersection telemetry for nodes I1 and I2. "
-            "Respond ONLY with a JSON object containing keys: "
+            "Respond ONLY with a valid JSON object containing keys: "
             "decision, priority, source_intersection, approach, target_intersections, recommended_actions (array of strings), reason."
         )
         
@@ -144,21 +150,68 @@ class AICoordinatorService:
                 {"role": "system", "content": system_instructions},
                 {"role": "user", "content": json.dumps(prompt_data)}
             ],
+            "max_tokens": 400,
             "temperature": 0.2
         }
 
-        req = urllib.request.Request(url, data=json.dumps(body).encode('utf-8'), headers=headers)
-        with urllib.request.urlopen(req, timeout=10) as response:
-            res_data = json.loads(response.read().decode('utf-8'))
-            content = res_data['choices'][0]['message']['content']
-            # Parse JSON from choice content
-            cleaned = content.strip()
-            if cleaned.startswith("```json"):
-                cleaned = cleaned[7:]
-            if cleaned.startswith("```"):
-                cleaned = cleaned[3:]
-            if cleaned.endswith("```"):
-                cleaned = cleaned[:-3]
-            return json.loads(cleaned.strip())
+        timeout = httpx.Timeout(connect=10.0, read=120.0, write=10.0, pool=10.0)
+        max_retries = 2
+
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            for attempt in range(max_retries + 1):
+                try:
+                    logger.info(f"Sending request to Featherless API (Model: {self.model}, Attempt {attempt + 1}/{max_retries + 1})...")
+                    response = await client.post(url, headers=headers, json=body)
+                    
+                    if response.status_code == 200:
+                        res_data = response.json()
+                        content = res_data['choices'][0]['message']['content']
+                        cleaned = content.strip()
+                        if cleaned.startswith("```json"):
+                            cleaned = cleaned[7:]
+                        if cleaned.startswith("```"):
+                            cleaned = cleaned[3:]
+                        if cleaned.endswith("```"):
+                            cleaned = cleaned[:-3]
+                        return json.loads(cleaned.strip())
+                    
+                    elif response.status_code == 401:
+                        raise ValueError("Featherless API key is invalid or unauthorized (HTTP 401). Please verify FEATHERLESS_API_KEY in .env.")
+                    elif response.status_code == 403:
+                        raise ValueError("Access forbidden for Featherless API (HTTP 403). Please verify API key permissions.")
+                    elif response.status_code == 400:
+                        error_detail = response.text[:200]
+                        raise ValueError(f"Invalid request payload sent to Featherless API (HTTP 400): {error_detail}")
+                    elif response.status_code in (500, 502, 503, 504):
+                        error_msg = f"Featherless API server error (HTTP {response.status_code})."
+                        if attempt < max_retries:
+                            logger.warning(f"{error_msg} Retrying in 1.5s (attempt {attempt + 1}/{max_retries + 1})...")
+                            await asyncio.sleep(1.5)
+                            continue
+                        raise ValueError(f"{error_msg} Service may be experiencing temporary degradation.")
+                    else:
+                        raise ValueError(f"Featherless API returned unexpected HTTP status {response.status_code}: {response.text[:200]}")
+
+                except (httpx.ReadTimeout, httpx.ConnectTimeout, httpx.TimeoutException) as e:
+                    error_msg = f"Featherless API request timed out (Connect: 10s, Read: 120s)."
+                    if attempt < max_retries:
+                        logger.warning(f"{error_msg} Retrying in 1.5s (attempt {attempt + 1}/{max_retries + 1})...")
+                        await asyncio.sleep(1.5)
+                        continue
+                    raise ValueError(f"Featherless API request timed out after {max_retries + 1} attempts. The model ({self.model}) took longer than 120 seconds to respond. Please retry.")
+
+                except httpx.RequestError as e:
+                    error_msg = f"Network error connecting to Featherless API: {str(e)}"
+                    if attempt < max_retries:
+                        logger.warning(f"{error_msg} Retrying in 1.5s (attempt {attempt + 1}/{max_retries + 1})...")
+                        await asyncio.sleep(1.5)
+                        continue
+                    raise ValueError(error_msg)
+
+                except json.JSONDecodeError as e:
+                    logger.error(f"Failed to parse JSON response from Featherless API model: {e}")
+                    raise ValueError(f"Model output could not be parsed as valid JSON: {str(e)}")
+
+        raise ValueError(f"Featherless API request failed after {max_retries + 1} attempts.")
 
 ai_coordinator = AICoordinatorService()
