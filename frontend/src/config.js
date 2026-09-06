@@ -13,8 +13,15 @@ const isProduction =
     window.location.hostname !== 'localhost' &&
     window.location.hostname !== '127.0.0.1');
 
+const envApiUrl =
+  import.meta.env.VITE_API_URL ||
+  import.meta.env.API_URL ||
+  import.meta.env.BACKEND_URL ||
+  (typeof process !== 'undefined' && process.env && (process.env.API_URL || process.env.BACKEND_URL)) ||
+  '';
+
 export const API_BASE_URL = isProduction
-  ? (import.meta.env.VITE_API_URL || PROD_BACKEND_URL)
+  ? (envApiUrl || PROD_BACKEND_URL)
   : '';
 
 export const getApiUrl = (path) => {
@@ -23,8 +30,9 @@ export const getApiUrl = (path) => {
 };
 
 export const getWsUrl = () => {
-  if (import.meta.env.VITE_WS_URL) {
-    return import.meta.env.VITE_WS_URL;
+  const customWs = import.meta.env.VITE_WS_URL || import.meta.env.WS_URL;
+  if (customWs) {
+    return customWs;
   }
   if (API_BASE_URL && API_BASE_URL.startsWith('http')) {
     // Automatically convert https://... to wss://... and http://... to ws://...
