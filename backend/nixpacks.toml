@@ -1,8 +1,6 @@
-[phases.setup]
-nixPkgs = ["python311"]
-
-[phases.install]
-cmds = ["python -m pip install --upgrade pip", "pip install -r requirements.txt"]
+# Nixpacks configuration for Python on Railway
+[variables]
+NIXPACKS_PYTHON_VERSION = "3.11"
 
 [start]
 cmd = "bash start.sh"
