@@ -1,12 +1,11 @@
 /**
  * Trinetra API and WebSocket Configuration
  * 
- * Production Vercel Backend: https://trinetrabackend-j66kcj8b2-svpda33s-projects.vercel.app
- * Local Development: Relative paths (proxied by Vite) & localhost WebSocket.
+ * Supports dynamic Railway backend URL, custom environment variables, and local proxy.
  */
 
-const PROD_BACKEND_URL = 'https://trinetrabackend-j66kcj8b2-svpda33s-projects.vercel.app';
-const PROD_WS_URL = 'wss://trinetrabackend-j66kcj8b2-svpda33s-projects.vercel.app/api/ws/telemetry';
+// Fallback production URL (Replace with your actual Railway domain after deployment)
+const PROD_BACKEND_URL = 'https://trinetra-backend.up.railway.app';
 
 const isProduction =
   import.meta.env.PROD ||
@@ -27,8 +26,10 @@ export const getWsUrl = () => {
   if (import.meta.env.VITE_WS_URL) {
     return import.meta.env.VITE_WS_URL;
   }
-  if (isProduction) {
-    return PROD_WS_URL;
+  if (API_BASE_URL && API_BASE_URL.startsWith('http')) {
+    // Automatically convert https://... to wss://... and http://... to ws://...
+    const wsBase = API_BASE_URL.replace(/^http/, 'ws').replace(/\/+$/, '');
+    return `${wsBase}/api/ws/telemetry`;
   }
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const hostname = window.location.hostname || 'localhost';
