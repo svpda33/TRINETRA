@@ -2,6 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Maximize2, X, Video, AlertTriangle, VideoOff } from 'lucide-react';
 import { getApiUrl } from '../config';
 
+// Format seconds into MM:SS format
+const formatTimer = (sec) => {
+  const s = Math.max(0, Number(sec) || 0);
+  const mins = String(Math.floor(s / 60)).padStart(2, '0');
+  const secs = String(s % 60).padStart(2, '0');
+  return `${mins}:${secs}`;
+};
+
 export default function CameraFeedMonitor({ intersections = [], onTriggerVisionDetection, onReturnHome }) {
   const [activeSlide, setActiveSlide] = useState('I1');
   const [fullscreenCam, setFullscreenCam] = useState(null);
@@ -20,9 +28,9 @@ export default function CameraFeedMonitor({ intersections = [], onTriggerVisionD
   const cameraConfig = {
     I1: {
       intersectionId: 'I1',
-      name: 'Main St & 1st Ave',
-      crossStreet: '1st Ave',
-      mainStreet: 'Main St',
+      name: 'Cyber Towers Junction',
+      crossStreet: 'Hitec City Main Rd',
+      mainStreet: 'Cyber Towers Flyover',
       cameras: [
         { camId: 'CAM_I1_NORTH', dir: 'NORTH', backendCamId: 'CAM_I1', videoSrc: '/videos/I1_NORTH.mp4' },
         { camId: 'CAM_I1_SOUTH', dir: 'SOUTH', backendCamId: 'CAM_I1', videoSrc: '/videos/I1_SOUTH.mp4' },
@@ -32,9 +40,9 @@ export default function CameraFeedMonitor({ intersections = [], onTriggerVisionD
     },
     I2: {
       intersectionId: 'I2',
-      name: 'Main St & 2nd Ave',
-      crossStreet: '2nd Ave',
-      mainStreet: 'Main St',
+      name: 'Hitec City / Mindspace Junction',
+      crossStreet: 'Mindspace Inorbit Rd',
+      mainStreet: 'Hitec City Main Rd',
       cameras: [
         { camId: 'CAM_I2_NORTH', dir: 'NORTH', backendCamId: 'CAM_I2', videoSrc: '/videos/I2_NORTH.mp4' },
         { camId: 'CAM_I2_SOUTH', dir: 'SOUTH', backendCamId: 'CAM_I2', videoSrc: '/videos/I2_SOUTH.mp4' },
@@ -278,13 +286,6 @@ export default function CameraFeedMonitor({ intersections = [], onTriggerVisionD
     const isGreen = isCurrentActive && timerState === 'GREEN';
     const isYellow = isCurrentActive && timerState === 'YELLOW';
     const isRed = !isCurrentActive || timerState === 'ALL_RED';
-
-    const formatTimer = (sec) => {
-      const s = Math.max(0, sec);
-      const mins = String(Math.floor(s / 60)).padStart(2, '0');
-      const secs = String(s % 60).padStart(2, '0');
-      return `${mins}:${secs}`;
-    };
 
     const arrowColors = {
       left: isGreen ? '#10b981' : (isYellow ? '#f59e0b' : '#334155'),
@@ -627,20 +628,38 @@ export default function CameraFeedMonitor({ intersections = [], onTriggerVisionD
             </div>
           </div>
 
-          {/* Bottom-Right HUD Corner Indicator: TIMESTAMP */}
+          {/* Bottom-Right HUD Corner Indicator: LIVE SIGNAL COUNTDOWN + CCTV TIMESTAMP */}
           <div style={{
             position: 'absolute',
             bottom: '6px',
             right: '6px',
-            fontSize: '0.6rem',
-            fontFamily: 'monospace',
-            color: '#10b981',
-            background: 'rgba(15, 23, 42, 0.85)',
-            padding: '0.15rem 0.35rem',
-            borderRadius: '2px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
             zIndex: 5
           }}>
-            {currentTime}
+            <div style={{
+              fontSize: '0.6rem',
+              fontFamily: 'monospace',
+              fontWeight: 900,
+              color: camState.isGreen ? '#10b981' : (camState.timerState === 'YELLOW' ? '#f59e0b' : '#ef4444'),
+              background: 'rgba(15, 23, 42, 0.92)',
+              padding: '0.1rem 0.35rem',
+              borderRadius: '2px',
+              border: `1px solid ${camState.isGreen ? '#10b981' : (camState.timerState === 'YELLOW' ? '#f59e0b' : '#ef4444')}`
+            }}>
+              ⏱ {formatTimer(currentNodeData?.timer_remaining ?? 0)}
+            </div>
+            <div style={{
+              fontSize: '0.6rem',
+              fontFamily: 'monospace',
+              color: '#94a3b8',
+              background: 'rgba(15, 23, 42, 0.85)',
+              padding: '0.1rem 0.35rem',
+              borderRadius: '2px'
+            }}>
+              {currentTime}
+            </div>
           </div>
 
           {/* PRIORITY PREEMPTION & INCIDENT LOCK OVERLAY TAG BANNER */}
@@ -1163,22 +1182,39 @@ export default function CameraFeedMonitor({ intersections = [], onTriggerVisionD
                   </div>
                 </div>
 
-                {/* Bottom-Right HUD Corner Indicator */}
+                {/* Bottom-Right HUD Corner Indicator: LIVE SIGNAL COUNTDOWN + CCTV TIME */}
                 <div style={{
                   position: 'absolute',
                   bottom: '12px',
                   right: '14px',
-                  fontSize: '0.8rem',
-                  fontFamily: 'monospace',
-                  color: '#10b981',
-                  fontWeight: 800,
-                  background: 'rgba(15, 23, 42, 0.85)',
-                  padding: '0.25rem 0.5rem',
-                  borderRadius: '3px',
-                  border: '1px solid #334155',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
                   zIndex: 5
                 }}>
-                  CCTV TIME: {currentTime}
+                  <div style={{
+                    fontSize: '0.85rem',
+                    fontFamily: 'monospace',
+                    fontWeight: 900,
+                    color: modalCamState.isGreen ? '#10b981' : (modalCamState.timerState === 'YELLOW' ? '#f59e0b' : '#ef4444'),
+                    background: 'rgba(15, 23, 42, 0.95)',
+                    padding: '0.25rem 0.6rem',
+                    borderRadius: '3px',
+                    border: `1px solid ${modalCamState.isGreen ? '#10b981' : (modalCamState.timerState === 'YELLOW' ? '#f59e0b' : '#ef4444')}`
+                  }}>
+                    ⏱ {formatTimer(intersections.find(i => i.intersection_id === fullscreenCam.intersectionId)?.timer_remaining ?? 0)}
+                  </div>
+                  <div style={{
+                    fontSize: '0.8rem',
+                    fontFamily: 'monospace',
+                    color: '#94a3b8',
+                    background: 'rgba(15, 23, 42, 0.85)',
+                    padding: '0.25rem 0.5rem',
+                    borderRadius: '3px',
+                    border: '1px solid #334155'
+                  }}>
+                    CCTV TIME: {currentTime}
+                  </div>
                 </div>
 
                 {/* FULLSCREEN PRIORITY OVERLAY TAG BANNER */}
