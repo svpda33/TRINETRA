@@ -40,11 +40,10 @@ app = FastAPI(
 os.makedirs(SNAPSHOTS_DIR, exist_ok=True)
 app.mount("/snapshots", StaticFiles(directory=SNAPSHOTS_DIR), name="snapshots")
 
-# Robust CORS middleware supporting all origins (including Vercel preview & production)
+# Robust CORS middleware supporting development, Vercel previews, and Railway deployments
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_origin_regex=r"^https?://.*$",
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1|.*\.vercel\.app|.*\.up\.railway\.app)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -83,9 +82,17 @@ async def startup_event():
     logger.info(f"Starting {settings.PROJECT_NAME} v{settings.PROJECT_VERSION} in {settings.ENVIRONMENT} mode on port {settings.PORT}.")
     logger.info(f"Priority Hierarchy initialized with {len(settings.PRIORITY_HIERARCHY)} levels.")
     await init_db()
+    
+    # Wire live video ingestion events directly to the WebSocket broadcast pipeline
+    from app.services.video_ingestion_service import video_ingestion_service
+    video_ingestion_service.register_event_listener(simulation_engine.broadcast_cv_event_sync)
+    
     simulation_engine.start()
 
 @app.on_event("shutdown")
 async def shutdown_event():
     logger.info(f"Shutting down {settings.PROJECT_NAME}.")
+    from app.services.video_ingestion_service import video_ingestion_service
+    for cid in list(video_ingestion_service.workers.keys()):
+        video_ingestion_service.stop_camera(cid)
     simulation_engine.stop()

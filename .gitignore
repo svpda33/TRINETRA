@@ -30,10 +30,12 @@ wheels/
 .env.*.local
 *.pem
 
-# Database
+# Database & Snapshots
 *.sqlite
 *.sqlite3
 *.db
+backend/data/snapshots/*
+!backend/data/snapshots/.gitkeep
 
 # Node / React
 node_modules/

@@ -16,19 +16,28 @@ export default function PlateTrajectorySearch({ onTrajectoryLoaded, currentTraje
     setErrorMsg(null);
 
     fetch(getApiUrl(`/api/trajectories/${plate}`))
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          return res.json().then(errData => {
+            throw new Error(errData.detail || `No sightings found for plate "${plate}".`);
+          });
+        }
+        return res.json();
+      })
       .then(resData => {
         if (resData.status === 'success' && resData.data) {
           setTrajectoryData(resData.data);
           if (onTrajectoryLoaded) {
             onTrajectoryLoaded(resData.data);
           }
-        } else {
-          setErrorMsg(`No sightings found for plate "${plate}".`);
         }
       })
       .catch(err => {
-        setErrorMsg(`Failed to query trajectory: ${err.message}`);
+        setTrajectoryData(null);
+        if (onTrajectoryLoaded) {
+          onTrajectoryLoaded(null);
+        }
+        setErrorMsg(err.message);
       })
       .finally(() => setLoading(false));
   };

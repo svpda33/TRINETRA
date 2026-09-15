@@ -186,10 +186,28 @@ class SimulationEngine:
         self.listeners.discard(queue)
 
     async def broadcast_state(self):
-        state_data = self.get_topology().model_dump()
+        topology_dict = self.get_topology().model_dump()
+        state_data = {
+            "telemetry_type": "SIGNAL_SIMULATION_EVENT",
+            **topology_dict
+        }
         for q in list(self.listeners):
             try:
                 await q.put(state_data)
+            except Exception:
+                pass
+
+    def broadcast_cv_event_sync(self, event_type: str, payload: Any):
+        """Thread-safe event broadcaster for genuine CV and ANPR detections from video worker."""
+        msg = {
+            "telemetry_type": "REAL_CV_EVENT",
+            "event_type": event_type,
+            "data": payload,
+            "timestamp": time.time()
+        }
+        for q in list(self.listeners):
+            try:
+                q.put_nowait(msg)
             except Exception:
                 pass
 

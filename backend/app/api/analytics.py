@@ -7,6 +7,7 @@ router = APIRouter(prefix="/analytics", tags=["Urban Traffic Analytics"])
 
 @router.get("/summary")
 @router.get("/macro-flow")
+@router.get("/corridor-flow")
 async def get_analytics_summary():
     """
     Returns city-wide traffic volume, modal split (cars, 2-wheelers, buses, trucks, autos),
@@ -19,6 +20,7 @@ async def get_analytics_summary():
     }
 
 @router.get("/od-matrix")
+@router.get("/origin-destination")
 async def get_od_matrix():
     """
     Returns Origin-Destination (O-D) flow matrix across the 4 Hyderabad corridor junctions.

@@ -79,7 +79,9 @@ class TrajectoryEngine:
         coords_path = []
 
         for i, s in enumerate(sightings):
-            cam_info = gis_engine.JUNCTIONS.get(s.camera_id[:2], {})
+            parts = s.camera_id.split("_")
+            j_id = parts[1] if len(parts) > 1 and parts[1] in gis_engine.JUNCTIONS else s.camera_id[:2]
+            cam_info = gis_engine.JUNCTIONS.get(j_id, {})
             lat = cam_info.get("latitude", 17.4504)
             lon = cam_info.get("longitude", 78.3808)
             coords_path.append([lat, lon])
@@ -103,8 +105,10 @@ class TrajectoryEngine:
 
             if i > 0:
                 prev_s = sightings[i - 1]
+                prev_parts = prev_s.camera_id.split("_")
+                prev_j = prev_parts[1] if len(prev_parts) > 1 and prev_parts[1] in gis_engine.JUNCTIONS else prev_s.camera_id[:2]
                 delta_t = (s.timestamp - prev_s.timestamp).total_seconds() if (s.timestamp and prev_s.timestamp) else 0
-                dist = gis_engine.get_corridor_distance(prev_s.camera_id[:2], s.camera_id[:2])
+                dist = gis_engine.get_corridor_distance(prev_j, j_id)
                 
                 hop_data["travel_time_seconds"] = max(1, int(delta_t))
                 hop_data["segment_distance_meters"] = dist
@@ -123,6 +127,9 @@ class TrajectoryEngine:
 
         avg_speed = round((total_distance / max(1, total_duration_sec)) * 3.6, 1) if total_duration_sec > 0 else hops[-1]["speed_kmh"]
 
+        last_parts = sightings[-1].camera_id.split("_")
+        last_j = last_parts[1] if len(last_parts) > 1 and last_parts[1] in gis_engine.JUNCTIONS else sightings[-1].camera_id[:2]
+
         return {
             "plate_number": norm_plate,
             "formatted_plate": f"{norm_plate[:2]} {norm_plate[2:4]} {norm_plate[4:-4]} {norm_plate[-4:]}" if len(norm_plate) >= 9 else norm_plate,
@@ -131,7 +138,7 @@ class TrajectoryEngine:
             "first_seen": first_seen.strftime("%H:%M:%S IST") if first_seen else "",
             "last_seen": last_seen.strftime("%H:%M:%S IST") if last_seen else "",
             "last_seen_camera": sightings[-1].camera_id,
-            "current_location": gis_engine.JUNCTIONS.get(sightings[-1].camera_id[:2], {}).get("name", sightings[-1].camera_id),
+            "current_location": gis_engine.JUNCTIONS.get(last_j, {}).get("name", sightings[-1].camera_id),
             "total_distance_meters": round(total_distance, 1),
             "average_speed_kmh": avg_speed,
             "path_coordinates": coords_path,

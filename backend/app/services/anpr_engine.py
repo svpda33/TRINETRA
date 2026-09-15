@@ -65,6 +65,10 @@ class ANPREngine:
             return None
 
         h, w = vehicle_crop.shape[:2]
+        # If crop already has a plate aspect ratio (w/h >= 2.0), return directly
+        if float(w) / max(1, float(h)) >= 2.0:
+            return vehicle_crop
+
         # Focus on lower portion where license plate resides
         lower_y = int(h * 0.50)
         lower_crop = vehicle_crop[lower_y:h, 0:w]
@@ -162,6 +166,14 @@ class ANPREngine:
 
         raw_text, ocr_conf = self.read_plate(plate_candidate)
         val_result = plate_validator.validate(raw_text, ocr_conf)
+
+        # Fallback to entire vehicle crop if candidate contour yielded invalid low confidence
+        if not val_result["is_valid"] and ocr_conf < 0.40 and plate_candidate is not v_crop:
+            fallback_text, fallback_conf = self.read_plate(v_crop)
+            fallback_val = plate_validator.validate(fallback_text, fallback_conf)
+            if fallback_val["is_valid"] or fallback_conf > ocr_conf:
+                raw_text, ocr_conf, val_result = fallback_text, fallback_conf, fallback_val
+                plate_candidate = v_crop
 
         if not val_result["is_valid"] and ocr_conf < 0.40:
             return None

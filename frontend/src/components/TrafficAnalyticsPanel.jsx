@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart3, TrendingUp, AlertTriangle, ArrowRight, Gauge, Activity } from 'lucide-react';
+import { BarChart3, TrendingUp, AlertTriangle, ArrowRight, Gauge, Activity, RefreshCw } from 'lucide-react';
 import { getApiUrl } from '../config';
 
 export default function TrafficAnalyticsPanel() {
@@ -7,7 +7,7 @@ export default function TrafficAnalyticsPanel() {
   const [odMatrix, setOdMatrix] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const loadData = () => {
     Promise.all([
       fetch(getApiUrl('/api/analytics/summary')).then(res => res.json()),
       fetch(getApiUrl('/api/analytics/od-matrix')).then(res => res.json())
@@ -18,15 +18,15 @@ export default function TrafficAnalyticsPanel() {
       })
       .catch(err => console.warn('Failed to load traffic analytics:', err))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadData();
+    const interval = setInterval(loadData, 4000);
+    return () => clearInterval(interval);
   }, []);
 
-  const modalSplit = summary?.modal_split || [
-    { class_label: 'CAR', display_name: 'Passenger Cars', count: 48, percentage: 33.8 },
-    { class_label: 'MOTORCYCLE', display_name: 'Motorcycles / 2W', count: 52, percentage: 36.6 },
-    { class_label: 'AUTO_RICKSHAW', display_name: 'Auto-Rickshaws (3W)', count: 28, percentage: 19.7 },
-    { class_label: 'BUS', display_name: 'Public Transit Buses', count: 8, percentage: 5.6 },
-    { class_label: 'TRUCK', display_name: 'Commercial Trucks', count: 6, percentage: 4.2 }
-  ];
+  const modalSplit = summary?.modal_split || [];
 
   return (
     <div className="gov-section" id="section-analytics">
@@ -35,17 +35,27 @@ export default function TrafficAnalyticsPanel() {
           <BarChart3 size={18} style={{ color: '#0284c7' }} />
           <span>URBAN TRAFFIC FLOW ANALYTICS & MACRO INTELLIGENCE</span>
         </div>
-        <span style={{ fontSize: '0.725rem', color: '#64748b', fontFamily: 'monospace' }}>
-          HYDERABAD IT CORRIDOR TRAFFIC FLOW TELEMETRY
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          <button
+            onClick={loadData}
+            className="gov-btn"
+            style={{ fontSize: '0.725rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+          >
+            <RefreshCw size={12} />
+            Refresh Analytics
+          </button>
+          <span style={{ fontSize: '0.725rem', color: '#64748b', fontFamily: 'monospace' }}>
+            HYDERABAD IT CORRIDOR TRAFFIC FLOW TELEMETRY
+          </span>
+        </div>
       </div>
 
       {/* KPI Cards */}
       <div className="overview-stats-row" style={{ marginBottom: '1.25rem' }}>
         <div className="stat-column">
           <div className="stat-label">Total Monitored Flow</div>
-          <div className="stat-val">{summary?.total_vehicles_monitored || 142}</div>
-          <div className="stat-sub">Across 8 Camera Feeds</div>
+          <div className="stat-val">{summary?.total_vehicles_monitored || 0}</div>
+          <div className="stat-sub">Across Monitored Corridor Nodes</div>
         </div>
 
         <div className="stat-column">
@@ -58,42 +68,55 @@ export default function TrafficAnalyticsPanel() {
 
         <div className="stat-column">
           <div className="stat-label">Peak Flow Rate</div>
-          <div className="stat-val" style={{ color: '#2563eb' }}>
-            {summary?.peak_hour_flow_rate_vph || 1704} <span style={{ fontSize: '0.85rem' }}>vph</span>
+          <div className="stat-val" style={{ color: '#0284c7' }}>
+            {summary?.peak_hour_flow_rate_vph || 0} <span style={{ fontSize: '0.85rem' }}>veh/hr</span>
           </div>
-          <div className="stat-sub">Volume-Capacity: 68%</div>
+          <div className="stat-sub">Corridor Hourly Throughput</div>
         </div>
 
         <div className="stat-column">
-          <div className="stat-label">Corridor Congestion</div>
-          <div className="stat-val" style={{ color: '#059669', fontSize: '1.25rem' }}>
-            {summary?.congestion_level || 'MODERATE'}
+          <div className="stat-label">Congestion Index</div>
+          <div className="stat-val" style={{
+            color: summary?.congestion_level === 'HIGH' ? '#dc2626' : (summary?.congestion_level === 'MODERATE' ? '#ea580c' : '#059669'),
+            fontSize: '1.25rem'
+          }}>
+            {summary?.congestion_level || 'LOW'}
           </div>
-          <div className="stat-sub">LOS Grade: B (Nominal)</div>
+          <div className="stat-sub">Level of Service (LOS)</div>
         </div>
       </div>
 
-      {/* Modal Split & Turning Movement Counts Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
-        {/* Modal Split Card */}
-        <div style={{ backgroundColor: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '1rem' }}>
-          <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0b2545', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
-            Vehicle Modal Classification Split
+      {/* Analytics Main Columns */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+        {/* Modal Split Breakdown */}
+        <div style={{
+          backgroundColor: '#f8fafc',
+          border: '1px solid #e2e8f0',
+          borderRadius: '4px',
+          padding: '1rem'
+        }}>
+          <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#0b2545', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <TrendingUp size={15} color="#0284c7" />
+            <span>MODAL SPLIT CLASSIFICATION (YOLO VEHICLE DETECTION)</span>
           </div>
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-            {modalSplit.map((m) => (
-              <div key={m.class_label}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '0.2rem' }}>
-                  <span style={{ fontWeight: 600, color: '#334155' }}>{m.display_name}</span>
-                  <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0b2545' }}>
-                    {m.count} veh ({m.percentage}%)
+            {modalSplit.map((item) => (
+              <div key={item.class_label}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '2px' }}>
+                  <span style={{ fontWeight: 600, color: '#334155' }}>{item.display_name}</span>
+                  <span style={{ fontFamily: 'monospace', color: '#64748b' }}>
+                    <strong>{item.count}</strong> ({item.percentage}%)
                   </span>
                 </div>
-                <div style={{ height: '7px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                <div style={{ height: '7px', backgroundColor: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
                   <div style={{
-                    width: `${m.percentage}%`,
                     height: '100%',
-                    backgroundColor: m.class_label === 'MOTORCYCLE' ? '#38bdf8' : m.class_label === 'CAR' ? '#0284c7' : m.class_label === 'AUTO_RICKSHAW' ? '#f59e0b' : '#10b981'
+                    width: `${item.percentage}%`,
+                    backgroundColor: item.class_label === 'CAR' ? '#0284c7' :
+                                     item.class_label === 'MOTORCYCLE' ? '#059669' :
+                                     item.class_label === 'AUTO_RICKSHAW' ? '#eab308' :
+                                     item.class_label === 'BUS' ? '#9333ea' : '#ea580c'
                   }} />
                 </div>
               </div>
@@ -101,129 +124,114 @@ export default function TrafficAnalyticsPanel() {
           </div>
         </div>
 
-        {/* Turning Movement Counts (TMC) */}
-        <div style={{ backgroundColor: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '1rem' }}>
-          <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0b2545', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
-            Junction Turning Movement Counts (TMC)
+        {/* Turning Movement Counts */}
+        <div style={{
+          backgroundColor: '#f8fafc',
+          border: '1px solid #e2e8f0',
+          borderRadius: '4px',
+          padding: '1rem'
+        }}>
+          <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#0b2545', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <Activity size={15} color="#059669" />
+            <span>TURNING MOVEMENT COUNTS (TMC BY CORRIDOR JUNCTION)</span>
           </div>
-          <div className="gov-table-container">
+
+          <div className="gov-table-container" style={{ maxHeight: '180px', overflowY: 'auto' }}>
             <table className="gov-data-table" style={{ fontSize: '0.75rem' }}>
               <thead>
                 <tr>
-                  <th>Junction</th>
-                  <th>Straight (↑)</th>
-                  <th>Left Turn (←)</th>
-                  <th>Right Turn (→)</th>
-                  <th>Total Split</th>
+                  <th>JUNCTION</th>
+                  <th>THROUGH</th>
+                  <th>LEFT TURN</th>
+                  <th>RIGHT TURN</th>
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td><strong>I1 (Cyber Towers)</strong></td>
-                  <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>124 veh</td>
-                  <td style={{ fontFamily: 'monospace', color: '#059669' }}>45 veh</td>
-                  <td style={{ fontFamily: 'monospace', color: '#d97706' }}>32 veh</td>
-                  <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>201 veh</td>
-                </tr>
-                <tr>
-                  <td><strong>I2 (Mindspace)</strong></td>
-                  <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>98 veh</td>
-                  <td style={{ fontFamily: 'monospace', color: '#059669' }}>38 veh</td>
-                  <td style={{ fontFamily: 'monospace', color: '#d97706' }}>26 veh</td>
-                  <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>162 veh</td>
-                </tr>
-                <tr>
-                  <td><strong>I3 (Bio-Diversity)</strong></td>
-                  <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>85 veh</td>
-                  <td style={{ fontFamily: 'monospace', color: '#059669' }}>29 veh</td>
-                  <td style={{ fontFamily: 'monospace', color: '#d97706' }}>22 veh</td>
-                  <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>136 veh</td>
-                </tr>
-                <tr>
-                  <td><strong>I4 (Gachibowli)</strong></td>
-                  <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>110 veh</td>
-                  <td style={{ fontFamily: 'monospace', color: '#059669' }}>41 veh</td>
-                  <td style={{ fontFamily: 'monospace', color: '#d97706' }}>35 veh</td>
-                  <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>186 veh</td>
-                </tr>
+                {summary?.turning_movement_counts && Object.entries(summary.turning_movement_counts).map(([node, counts]) => (
+                  <tr key={node}>
+                    <td style={{ fontWeight: 700, color: '#0b2545' }}>{node}</td>
+                    <td style={{ fontFamily: 'monospace', color: '#059669' }}>{counts.STRAIGHT}</td>
+                    <td style={{ fontFamily: 'monospace', color: '#0284c7' }}>{counts.LEFT_TURN}</td>
+                    <td style={{ fontFamily: 'monospace', color: '#d97706' }}>{counts.RIGHT_TURN}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         </div>
       </div>
 
-      {/* Origin-Destination (O-D) Matrix Table */}
-      <div style={{ backgroundColor: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '1rem', marginBottom: '1.25rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0b2545', textTransform: 'uppercase' }}>
-            Origin-Destination (O-D) Flow Distribution Matrix
-          </span>
-          <span style={{ fontSize: '0.7rem', color: '#64748b', fontFamily: 'monospace' }}>
-            DOMINANT CORRIDOR: I1 (CYBER TOWERS) → I2 (MINDSPACE) [48% FLOW]
-          </span>
-        </div>
+      {/* Origin-Destination (O-D) Matrix */}
+      {odMatrix && (
+        <div style={{
+          backgroundColor: '#ffffff',
+          border: '1px solid #e2e8f0',
+          borderRadius: '4px',
+          padding: '1rem',
+          marginBottom: '1rem'
+        }}>
+          <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#0b2545', marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <Gauge size={15} color="#0284c7" />
+              <span>ORIGIN-DESTINATION (O-D) TRAFFIC FLOW MATRIX (%)</span>
+            </div>
+            <span style={{ fontSize: '0.7rem', color: '#64748b', fontFamily: 'monospace' }}>
+              Dominant: {odMatrix.dominant_corridor}
+            </span>
+          </div>
 
-        <div className="gov-table-container">
-          <table className="gov-data-table" style={{ fontSize: '0.75rem', textAlign: 'center' }}>
-            <thead>
-              <tr>
-                <th style={{ textAlign: 'left' }}>Origin \ Destination</th>
-                <th>To I1 (Cyber Towers)</th>
-                <th>To I2 (Mindspace)</th>
-                <th>To I3 (Bio-Diversity)</th>
-                <th>To I4 (Gachibowli)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {odMatrix?.nodes?.map((nodeName, rIdx) => (
-                <tr key={nodeName}>
-                  <td style={{ textAlign: 'left', fontWeight: 700, color: '#0b2545' }}>{nodeName}</td>
-                  {odMatrix.matrix[rIdx].map((pct, cIdx) => (
-                    <td
-                      key={cIdx}
-                      style={{
-                        fontFamily: 'monospace',
-                        fontWeight: pct > 40 ? 900 : 600,
-                        backgroundColor: pct > 40 ? '#ecfdf5' : pct === 0 ? '#f8fafc' : 'transparent',
-                        color: pct > 40 ? '#059669' : pct === 0 ? '#94a3b8' : '#1e293b'
-                      }}
-                    >
-                      {pct === 0 ? '—' : `${pct}%`}
-                    </td>
-                  ))}
+          <div className="gov-table-container">
+            <table className="gov-data-table" style={{ fontSize: '0.75rem', textAlign: 'center' }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left' }}>ORIGIN \ DESTINATION</th>
+                  {odMatrix.nodes?.map((n, i) => <th key={i}>{n}</th>)}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {odMatrix.matrix?.map((row, i) => (
+                  <tr key={i}>
+                    <td style={{ textAlign: 'left', fontWeight: 700, color: '#0b2545' }}>
+                      {odMatrix.nodes[i]}
+                    </td>
+                    {row.map((val, j) => (
+                      <td key={j} style={{
+                        fontFamily: 'monospace',
+                        fontWeight: val > 30 ? 800 : 400,
+                        backgroundColor: i === j ? '#f1f5f9' : (val > 35 ? 'rgba(2, 132, 199, 0.12)' : 'transparent'),
+                        color: i === j ? '#94a3b8' : (val > 35 ? '#0284c7' : '#334155')
+                      }}>
+                        {i === j ? '—' : `${val}%`}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Bottleneck Warning Banner */}
-      {summary?.bottlenecks?.map((b, idx) => (
-        <div key={idx} style={{
+      {summary?.bottlenecks?.length > 0 && (
+        <div style={{
           backgroundColor: '#fffbeb',
           border: '1px solid #fde68a',
           borderRadius: '4px',
           padding: '0.75rem 1rem',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          fontSize: '0.775rem'
+          gap: '0.75rem'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <AlertTriangle size={18} style={{ color: '#d97706', flexShrink: 0 }} />
-            <div>
-              <strong style={{ color: '#92400e' }}>Active Corridor Bottleneck: {b.corridor}</strong>
-              <div style={{ color: '#78350f', marginTop: '2px' }}>
-                Current Speed: <strong>{b.current_speed_kmh} km/h</strong> (Speed dropped by {b.speed_reduction_pct}%)
-              </div>
-            </div>
+          <AlertTriangle size={18} color="#d97706" style={{ flexShrink: 0 }} />
+          <div style={{ fontSize: '0.775rem', color: '#92400e', lineHeight: '1.4' }}>
+            <strong>IDENTIFIED CORRIDOR BOTTLENECK:</strong> {summary.bottlenecks[0].corridor} — Speed: {summary.bottlenecks[0].current_speed_kmh} km/h (-{summary.bottlenecks[0].speed_reduction_pct}%).
+            <span style={{ display: 'block', color: '#78350f', marginTop: '2px' }}>
+              <strong>Recommended Action:</strong> {summary.bottlenecks[0].recommended_action}
+            </span>
           </div>
-          <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0284c7', backgroundColor: '#ffffff', padding: '0.3rem 0.6rem', borderRadius: '3px', border: '1px solid #bfdbfe' }}>
-            {b.recommended_action}
-          </span>
         </div>
-      ))}
+      )}
     </div>
   );
 }

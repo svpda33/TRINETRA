@@ -1,8 +1,21 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { getApiUrl } from '../config';
 
 export default function NetworkOverview({ activeIntersectionsCount = 4, activeEvents = [], activeCorridors = [] }) {
   const activeEventCount = activeEvents.length;
   const emergencyCorridorCount = activeCorridors.length;
+  const [totalDetections, setTotalDetections] = useState(null);
+
+  useEffect(() => {
+    fetch(getApiUrl('/api/anpr/detections?limit=1'))
+      .then(res => res.json())
+      .then(data => {
+        if (data.total !== undefined) {
+          setTotalDetections(data.total);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="gov-section" id="section-overview">
@@ -33,8 +46,10 @@ export default function NetworkOverview({ activeIntersectionsCount = 4, activeEv
         {/* Stat 3 */}
         <div className="stat-column">
           <div className="stat-label">ANPR Detections</div>
-          <div className="stat-val" style={{ color: '#059669' }}>142</div>
-          <div className="stat-sub">Real EasyOCR & HSRP Validated</div>
+          <div className="stat-val" style={{ color: '#059669' }}>
+            {totalDetections !== null ? String(totalDetections).padStart(2, '0') : '...'}
+          </div>
+          <div className="stat-sub">Live SQLite Database Records</div>
         </div>
 
         {/* Stat 4 */}

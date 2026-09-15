@@ -193,5 +193,115 @@ async def init_db():
                 ),
             ]
             session.add_all(watchlist)
+            await session.commit()
 
+        # Seed baseline multi-camera sightings for demo plates if detections table is empty
+        existing_dets = await session.execute(select(DetectionModel))
+        if not existing_dets.scalars().first():
+            from datetime import datetime, timedelta
+            now = datetime.utcnow()
+
+            # Multi-camera sightings along Cyber Towers (I1) -> Mindspace (I2) -> Bio-Diversity (I3)
+            detections = [
+                DetectionModel(
+                    camera_id="CAM_I1_NORTH",
+                    track_id=101,
+                    vehicle_class="CAR",
+                    plate_number="TS09EA1234",
+                    ocr_confidence=0.94,
+                    speed_kmh=44.0,
+                    heading="SOUTHBOUND",
+                    snapshot_path="/videos/I1_NORTH.mp4",
+                    timestamp=now - timedelta(seconds=180)
+                ),
+                DetectionModel(
+                    camera_id="CAM_I2_NORTH",
+                    track_id=102,
+                    vehicle_class="CAR",
+                    plate_number="TS09EA1234",
+                    ocr_confidence=0.96,
+                    speed_kmh=43.7,
+                    heading="SOUTHBOUND",
+                    snapshot_path="/videos/I2_NORTH.mp4",
+                    timestamp=now - timedelta(seconds=110)
+                ),
+                DetectionModel(
+                    camera_id="CAM_I3_NORTH",
+                    track_id=103,
+                    vehicle_class="CAR",
+                    plate_number="TS09EA1234",
+                    ocr_confidence=0.95,
+                    speed_kmh=42.0,
+                    heading="SOUTHBOUND",
+                    snapshot_path="/videos/I2_WEST.mp4",
+                    timestamp=now - timedelta(seconds=50)
+                ),
+                DetectionModel(
+                    camera_id="CAM_I1_EAST",
+                    track_id=104,
+                    vehicle_class="CAR",
+                    plate_number="AP28BK5678",
+                    ocr_confidence=0.91,
+                    speed_kmh=38.5,
+                    heading="WESTBOUND",
+                    snapshot_path="/videos/I1_EAST.mp4",
+                    timestamp=now - timedelta(seconds=240)
+                ),
+                DetectionModel(
+                    camera_id="CAM_I2_WEST",
+                    track_id=105,
+                    vehicle_class="CAR",
+                    plate_number="AP28BK5678",
+                    ocr_confidence=0.93,
+                    speed_kmh=41.2,
+                    heading="WESTBOUND",
+                    snapshot_path="/videos/I2_WEST.mp4",
+                    timestamp=now - timedelta(seconds=165)
+                ),
+                DetectionModel(
+                    camera_id="CAM_I1_NORTH",
+                    track_id=106,
+                    vehicle_class="MOTORCYCLE",
+                    plate_number="TS07AB1122",
+                    ocr_confidence=0.88,
+                    speed_kmh=35.0,
+                    heading="SOUTHBOUND",
+                    snapshot_path=None,
+                    timestamp=now - timedelta(seconds=120)
+                ),
+                DetectionModel(
+                    camera_id="CAM_I1_SOUTH",
+                    track_id=107,
+                    vehicle_class="AUTO_RICKSHAW",
+                    plate_number="TS09TR3344",
+                    ocr_confidence=0.85,
+                    speed_kmh=28.0,
+                    heading="NORTHBOUND",
+                    snapshot_path=None,
+                    timestamp=now - timedelta(seconds=100)
+                ),
+                DetectionModel(
+                    camera_id="CAM_I2_NORTH",
+                    track_id=108,
+                    vehicle_class="BUS",
+                    plate_number="TS09Z9988",
+                    ocr_confidence=0.92,
+                    speed_kmh=32.0,
+                    heading="SOUTHBOUND",
+                    snapshot_path=None,
+                    timestamp=now - timedelta(seconds=80)
+                ),
+                DetectionModel(
+                    camera_id="CAM_I2_SOUTH",
+                    track_id=109,
+                    vehicle_class="TRUCK",
+                    plate_number="AP16TH5566",
+                    ocr_confidence=0.89,
+                    speed_kmh=30.0,
+                    heading="NORTHBOUND",
+                    snapshot_path=None,
+                    timestamp=now - timedelta(seconds=60)
+                ),
+            ]
+            session.add_all(detections)
             await session.commit()
