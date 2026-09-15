@@ -24,13 +24,13 @@ class SimulationEngine:
         self.listeners: Set[asyncio.Queue] = set()
         self._task: Optional[asyncio.Task] = None
         
-        # Intersections I1 and I2 ONLY
+        # 4 Intersections along Hyderabad Smart IT Corridor
         self.intersections: Dict[str, Intersection] = {
             "I1": Intersection(
                 intersection_id="I1",
-                name="Main St & 1st Ave",
-                latitude=37.7749,
-                longitude=-122.4194,
+                name="Cyber Towers Junction",
+                latitude=17.4504,
+                longitude=78.3808,
                 signal_state=SignalState(),
                 current_phase=DirectionPhase.NORTH_APPROACH,
                 active_approach="NORTH",
@@ -40,8 +40,8 @@ class SimulationEngine:
                 active_movement_group="NORTH APPROACH GREEN PHASE",
                 other_approaches_status="SOUTH: RED | EAST: RED | WEST: RED",
                 queue_density=[
-                    QueueDensity(direction="NORTH_SOUTH", vehicle_count=22, average_speed_kmh=35.0, congestion_level=CongestionLevel.HIGH),
-                    QueueDensity(direction="EAST_WEST", vehicle_count=8, average_speed_kmh=42.0, congestion_level=CongestionLevel.LOW),
+                    QueueDensity(direction="NORTH_SOUTH", vehicle_count=24, average_speed_kmh=38.0, congestion_level=CongestionLevel.MEDIUM),
+                    QueueDensity(direction="EAST_WEST", vehicle_count=12, average_speed_kmh=42.0, congestion_level=CongestionLevel.LOW),
                 ],
                 neighboring_intersections=["I2"],
                 active_events=[],
@@ -49,9 +49,9 @@ class SimulationEngine:
             ),
             "I2": Intersection(
                 intersection_id="I2",
-                name="Main St & 2nd Ave",
-                latitude=37.7759,
-                longitude=-122.4184,
+                name="Hitec City / Mindspace Junction",
+                latitude=17.4428,
+                longitude=78.3813,
                 signal_state=SignalState(),
                 current_phase=DirectionPhase.SOUTH_APPROACH,
                 active_approach="SOUTH",
@@ -61,10 +61,52 @@ class SimulationEngine:
                 active_movement_group="SOUTH APPROACH GREEN PHASE",
                 other_approaches_status="NORTH: RED | EAST: RED | WEST: RED",
                 queue_density=[
-                    QueueDensity(direction="NORTH_SOUTH", vehicle_count=18, average_speed_kmh=22.0, congestion_level=CongestionLevel.MEDIUM),
-                    QueueDensity(direction="EAST_WEST", vehicle_count=14, average_speed_kmh=30.0, congestion_level=CongestionLevel.LOW),
+                    QueueDensity(direction="NORTH_SOUTH", vehicle_count=18, average_speed_kmh=32.0, congestion_level=CongestionLevel.MEDIUM),
+                    QueueDensity(direction="EAST_WEST", vehicle_count=14, average_speed_kmh=36.0, congestion_level=CongestionLevel.LOW),
                 ],
-                neighboring_intersections=["I1"],
+                neighboring_intersections=["I1", "I3"],
+                active_events=[],
+                current_priority=PriorityCategory.NORMAL
+            ),
+            "I3": Intersection(
+                intersection_id="I3",
+                name="Bio-Diversity Junction",
+                latitude=17.4325,
+                longitude=78.3728,
+                signal_state=SignalState(),
+                current_phase=DirectionPhase.EAST_APPROACH,
+                active_approach="EAST",
+                permitted_movements=["E → W", "E → N", "E → S"],
+                active_movements=["E → W", "E → N", "E → S"],
+                active_movement_ids=["E_TO_W", "E_TO_N", "E_TO_S"],
+                active_movement_group="EAST APPROACH GREEN PHASE",
+                other_approaches_status="NORTH: RED | SOUTH: RED | WEST: RED",
+                queue_density=[
+                    QueueDensity(direction="NORTH_SOUTH", vehicle_count=16, average_speed_kmh=34.0, congestion_level=CongestionLevel.LOW),
+                    QueueDensity(direction="EAST_WEST", vehicle_count=20, average_speed_kmh=28.0, congestion_level=CongestionLevel.MEDIUM),
+                ],
+                neighboring_intersections=["I2", "I4"],
+                active_events=[],
+                current_priority=PriorityCategory.NORMAL
+            ),
+            "I4": Intersection(
+                intersection_id="I4",
+                name="Gachibowli Junction",
+                latitude=17.4401,
+                longitude=78.3489,
+                signal_state=SignalState(),
+                current_phase=DirectionPhase.WEST_APPROACH,
+                active_approach="WEST",
+                permitted_movements=["W → E", "W → N", "W → S"],
+                active_movements=["W → E", "W → N", "W → S"],
+                active_movement_ids=["W_TO_E", "W_TO_N", "W_TO_S"],
+                active_movement_group="WEST APPROACH GREEN PHASE",
+                other_approaches_status="NORTH: RED | SOUTH: RED | EAST: RED",
+                queue_density=[
+                    QueueDensity(direction="NORTH_SOUTH", vehicle_count=22, average_speed_kmh=36.0, congestion_level=CongestionLevel.MEDIUM),
+                    QueueDensity(direction="EAST_WEST", vehicle_count=10, average_speed_kmh=44.0, congestion_level=CongestionLevel.LOW),
+                ],
+                neighboring_intersections=["I3"],
                 active_events=[],
                 current_priority=PriorityCategory.NORMAL
             ),
@@ -76,8 +118,8 @@ class SimulationEngine:
             "I1": {
                 "approach_idx": 0,           # Start on NORTH
                 "phase_state": "GREEN",       # GREEN, YELLOW, ALL_RED
-                "state_elapsed": 0,           # seconds spent in current phase_state
-                "green_duration": 30,         # dynamically calculated based on approach density
+                "state_elapsed": 0,
+                "green_duration": 30,
                 "densities": {"NORTH": 75, "SOUTH": 20, "EAST": 50, "WEST": 15}
             },
             "I2": {
@@ -86,6 +128,20 @@ class SimulationEngine:
                 "state_elapsed": 0,
                 "green_duration": 25,
                 "densities": {"NORTH": 30, "SOUTH": 65, "EAST": 20, "WEST": 40}
+            },
+            "I3": {
+                "approach_idx": 2,           # Start on EAST
+                "phase_state": "GREEN",
+                "state_elapsed": 0,
+                "green_duration": 28,
+                "densities": {"NORTH": 25, "SOUTH": 35, "EAST": 60, "WEST": 30}
+            },
+            "I4": {
+                "approach_idx": 3,           # Start on WEST
+                "phase_state": "GREEN",
+                "state_elapsed": 0,
+                "green_duration": 26,
+                "densities": {"NORTH": 35, "SOUTH": 20, "EAST": 30, "WEST": 55}
             }
         }
 
@@ -103,15 +159,15 @@ class SimulationEngine:
         if active_emergencies:
             corridors.append({
                 "corridor_id": "GREEN_WAVE_01",
-                "name": "MAIN STREET TRAFFIC CORRIDOR (NODES I1 ↔ I2)",
-                "nodes": ["I1", "I2"],
+                "name": "HYDERABAD SMART IT CORRIDOR (CYBER TOWERS ↔ GACHIBOWLI)",
+                "nodes": ["I1", "I2", "I3", "I4"],
                 "status": "ACTIVE_PROTECTED_CORRIDOR"
             })
         else:
             corridors.append({
                 "corridor_id": "MAIN_CORRIDOR",
-                "name": "MAIN STREET TRAFFIC CORRIDOR (NODES I1 ↔ I2)",
-                "nodes": ["I1", "I2"],
+                "name": "HYDERABAD SMART IT CORRIDOR (CYBER TOWERS ↔ GACHIBOWLI)",
+                "nodes": ["I1", "I2", "I3", "I4"],
                 "status": "BIDIRECTIONAL REAL-TIME TELEMETRY"
             })
             

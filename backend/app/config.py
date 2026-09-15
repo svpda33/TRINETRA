@@ -11,12 +11,14 @@ load_dotenv(find_dotenv())
 
 class Settings(BaseSettings):
     """System settings loaded from environment variables."""
-    PROJECT_NAME: str = "Trinetra"
-    PROJECT_VERSION: str = "1.0.0"
+    PROJECT_NAME: str = "NexTrAI"
+    PROJECT_VERSION: str = "2.0.0"
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
     HOST: str = os.getenv("HOST", "0.0.0.0")
     PORT: int = int(os.getenv("PORT", 8000))
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///data/nextrai.db")
+    SNAPSHOTS_DIR: str = os.getenv("SNAPSHOTS_DIR", "data/snapshots")
     
     PRIORITY_HIERARCHY: Dict[str, Dict[str, Any]] = {
         "EMERGENCY_VEHICLE": {

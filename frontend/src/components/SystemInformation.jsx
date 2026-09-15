@@ -16,36 +16,42 @@ export default function SystemInformation() {
         <div>
           <div className="info-item-row">
             <span className="info-label">System Name:</span>
-            <span className="info-val">Trinetra</span>
+            <span className="info-val">NexTrAI</span>
+          </div>
+          <div className="info-item-row">
+            <span className="info-label">Challenge ID:</span>
+            <span className="info-val" style={{ color: '#059669', fontWeight: 700 }}>
+              SIH 26127 (Bharat Electronics Limited)
+            </span>
           </div>
           <div className="info-item-row">
             <span className="info-label">Primary Purpose:</span>
             <span className="info-val" style={{ fontSize: '0.75rem', fontFamily: 'sans-serif' }}>
-              Emergency-Aware, Self-Healing Traffic Signal Network
+              Multi-Camera ANPR Trajectory Tracking & Urban Traffic Analytics
             </span>
           </div>
           <div className="info-item-row">
             <span className="info-label">Deployment Environment:</span>
-            <span className="info-val">Hackathon Prototype</span>
+            <span className="info-val">Production ITMS Prototype</span>
           </div>
         </div>
 
         <div>
           <div className="info-item-row">
-            <span className="info-label">Simulated Network:</span>
-            <span className="info-val">4 Connected Intersections (I1 - I4)</span>
+            <span className="info-label">Monitored Corridor:</span>
+            <span className="info-val">Hyderabad Smart IT Corridor (Nodes 1-4)</span>
           </div>
           <div className="info-item-row">
-            <span className="info-label">AI Coordination Layer:</span>
-            <span className="info-val" style={{ color: '#2563eb' }}>Planned (Featherless API Integration)</span>
+            <span className="info-label">ANPR Engine:</span>
+            <span className="info-val" style={{ color: '#059669', fontWeight: 600 }}>YOLOv8 + EasyOCR + Indian HSRP Validator</span>
           </div>
           <div className="info-item-row">
-            <span className="info-label">Computer Vision Pipeline:</span>
-            <span className="info-val" style={{ color: '#2563eb' }}>Planned (Ultralytics YOLO / OpenCV)</span>
+            <span className="info-label">GIS Engine:</span>
+            <span className="info-val" style={{ color: '#059669', fontWeight: 600 }}>Interactive Leaflet.js Spatial Map</span>
           </div>
           <div className="info-item-row">
-            <span className="info-label">Traffic Hardware Interface:</span>
-            <span className="info-val" style={{ color: '#d97706' }}>Simulation Only</span>
+            <span className="info-label">Safety & Preemption Layer:</span>
+            <span className="info-val" style={{ color: '#2563eb' }}>Deterministic 12-Movement Conflict Validator</span>
           </div>
         </div>
       </div>

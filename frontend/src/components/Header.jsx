@@ -44,8 +44,8 @@ export default function Header({ backendConnected, isSimulating, onStartSim, onS
             />
           </div>
           <div className="title-group">
-            <h1>TRINETRA</h1>
-            <p>Autonomous Emergency-Aware Traffic Signal Network</p>
+            <h1>NexTrAI</h1>
+            <p>City-Wide Multi-Camera ANPR Trajectory Tracking & Urban Traffic Analytics</p>
           </div>
         </div>
 

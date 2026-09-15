@@ -19,14 +19,14 @@ export default function HeroSection() {
 
       <div className="hero-content">
         <div className="hero-badge">
-          PUBLIC SAFETY & TRAFFIC INFRASTRUCTURE
+          BHARAT ELECTRONICS LIMITED (BEL) — SMART INDIA HACKATHON PS 26127
         </div>
-        <h1 className="hero-title">TRINETRA</h1>
+        <h1 className="hero-title">NexTrAI</h1>
         <p className="hero-subtitle">
-          Autonomous Emergency-Aware Traffic Signal Network
+          City-Wide AI Engine for Multi-Camera ANPR Trajectory Tracking & Urban Traffic Analytics
         </p>
         <p className="hero-desc">
-          AI-powered coordination of connected traffic signals for safer and faster emergency response.
+          Unified intelligent platform integrating high-accuracy license plate OCR, spatial-temporal multi-camera tracking, interactive GIS trajectory reconstruction, and macro-level urban traffic intelligence.
         </p>
 
         <div className="hero-actions">

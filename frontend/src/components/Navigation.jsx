@@ -1,16 +1,19 @@
-import React from 'react';
-import { Home, Network, ListFilter, Sliders, ShieldCheck, Camera, Brain, Info } from 'lucide-react';
+import { Home, Navigation as NavIcon, Search, Camera, BarChart3, ShieldAlert, Video, Network, Sliders, ShieldCheck, Brain, Info } from 'lucide-react';
 
 export default function Navigation({ activeTab, setActiveTab }) {
   const navItems = [
-    { id: 'overview', label: 'HOME', icon: Home },
-    { id: 'network', label: 'TRAFFIC NETWORK', icon: Network },
-    { id: 'events', label: 'EVENTS', icon: ListFilter },
-    { id: 'signal', label: 'SIGNAL CONTROL', icon: Sliders },
+    { id: 'overview', label: 'OVERVIEW', icon: Home },
+    { id: 'gis', label: 'GIS TRAJECTORY MAP', icon: NavIcon },
+    { id: 'search', label: 'PLATE SEARCH', icon: Search },
+    { id: 'anpr', label: 'ANPR / OCR', icon: Camera },
+    { id: 'analytics', label: 'ANALYTICS', icon: BarChart3 },
+    { id: 'watchlist', label: 'WATCHLIST & ALERTS', icon: ShieldAlert },
+    { id: 'vision', label: 'CCTV FEEDS', icon: Video },
+    { id: 'network', label: 'INTERSECTIONS', icon: Network },
+    { id: 'signal', label: 'SIGNAL STATUS', icon: Sliders },
     { id: 'safety-tests', label: 'SAFETY TESTS', icon: ShieldCheck },
-    { id: 'vision', label: 'CCTV VISION', icon: Camera },
     { id: 'ai', label: 'AI REASONING', icon: Brain },
-    { id: 'system', label: 'SYSTEM INFORMATION', icon: Info },
+    { id: 'system', label: 'SYSTEM INFO', icon: Info },
   ];
 
   const scrollToSection = (id) => {

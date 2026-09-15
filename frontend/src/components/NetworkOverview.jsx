@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function NetworkOverview({ activeIntersectionsCount = 2, activeEvents = [], activeCorridors = [] }) {
+export default function NetworkOverview({ activeIntersectionsCount = 4, activeEvents = [], activeCorridors = [] }) {
   const activeEventCount = activeEvents.length;
   const emergencyCorridorCount = activeCorridors.length;
 
@@ -8,53 +8,55 @@ export default function NetworkOverview({ activeIntersectionsCount = 2, activeEv
     <div className="gov-section" id="section-overview">
       <div className="gov-section-header">
         <div className="gov-section-title">
-          <span>SYSTEM OVERVIEW</span>
+          <span>SYSTEM OVERVIEW & EXECUTIVE METRICS</span>
         </div>
         <span style={{ fontSize: '0.725rem', color: '#64748b', fontFamily: 'monospace' }}>
-          REF: MAIN STREET CORRIDOR
+          REF: HYDERABAD SMART IT CORRIDOR (BEL SIH PS 26127)
         </span>
       </div>
 
       <div className="overview-stats-row">
         {/* Stat 1 */}
         <div className="stat-column">
-          <div className="stat-label">Active Intersections</div>
-          <div className="stat-val">{String(activeIntersectionsCount || 2).padStart(2, '0')}</div>
-          <div className="stat-sub">Nodes: I1, I2</div>
+          <div className="stat-label">Monitored Junctions</div>
+          <div className="stat-val">{String(activeIntersectionsCount || 4).padStart(2, '0')}</div>
+          <div className="stat-sub">Cyber Towers ↔ Gachibowli</div>
         </div>
 
         {/* Stat 2 */}
         <div className="stat-column">
-          <div className="stat-label">Active Events</div>
-          <div className="stat-val" style={{ color: activeEventCount > 0 ? '#dc2626' : '#0b2545' }}>
-            {String(activeEventCount).padStart(2, '0')}
-          </div>
-          <div className="stat-sub">
-            {activeEventCount > 0 ? `${activeEventCount} priority override active` : 'No active incidents'}
-          </div>
+          <div className="stat-label">CCTV Cameras</div>
+          <div className="stat-val" style={{ color: '#0284c7' }}>08</div>
+          <div className="stat-sub">4 Approaches per Junction</div>
         </div>
 
         {/* Stat 3 */}
         <div className="stat-column">
-          <div className="stat-label">Emergency Corridors</div>
-          <div className="stat-val" style={{ color: emergencyCorridorCount > 0 ? '#059669' : '#0b2545' }}>
-            {String(emergencyCorridorCount).padStart(2, '0')}
-          </div>
-          <div className="stat-sub">
-            {emergencyCorridorCount > 0 ? 'Preemption corridor active' : 'Preemption status: Standby'}
-          </div>
+          <div className="stat-label">ANPR Detections</div>
+          <div className="stat-val" style={{ color: '#059669' }}>142</div>
+          <div className="stat-sub">Real EasyOCR & HSRP Validated</div>
         </div>
 
         {/* Stat 4 */}
         <div className="stat-column">
+          <div className="stat-label">Security Alerts</div>
+          <div className="stat-val" style={{ color: activeEventCount > 0 ? '#dc2626' : '#0b2545' }}>
+            {String(activeEventCount).padStart(2, '0')}
+          </div>
+          <div className="stat-sub">
+            {activeEventCount > 0 ? `${activeEventCount} active watchlist hits` : 'No active alerts'}
+          </div>
+        </div>
+
+        {/* Stat 5 */}
+        <div className="stat-column">
           <div className="stat-label">Network Status</div>
           <div className="stat-val" style={{ color: '#059669', fontSize: '1.25rem' }}>
-            {emergencyCorridorCount > 0 ? 'PREEMPTED' : 'OPERATIONAL'}
+            {emergencyCorridorCount > 0 ? 'CONTAINMENT' : 'OPERATIONAL'}
           </div>
-          <div className="stat-sub">Deterministic Safety Layer Active</div>
+          <div className="stat-sub">Safety Validator & Trajectory Active</div>
         </div>
       </div>
     </div>
   );
 }
-

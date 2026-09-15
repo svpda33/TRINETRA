@@ -3,6 +3,11 @@ import Header from './components/Header';
 import Navigation from './components/Navigation';
 import HeroSection from './components/HeroSection';
 import NetworkOverview from './components/NetworkOverview';
+import GISTrajectoryMap from './components/GISTrajectoryMap';
+import PlateTrajectorySearch from './components/PlateTrajectorySearch';
+import ANPRSightingsFeed from './components/ANPRSightingsFeed';
+import TrafficAnalyticsPanel from './components/TrafficAnalyticsPanel';
+import WatchlistManager from './components/WatchlistManager';
 import TrafficNetworkMap from './components/TrafficNetworkMap';
 import EventMonitor from './components/EventMonitor';
 import SignalStatus from './components/SignalStatus';
@@ -19,6 +24,7 @@ export default function App() {
   const [activeCorridors, setActiveCorridors] = useState([]);
   const [isSimulating, setIsSimulating] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [activeTrajectory, setActiveTrajectory] = useState(null);
   const wsRef = useRef(null);
 
   const fetchState = () => {
@@ -26,10 +32,7 @@ export default function App() {
       .then(res => res.json())
       .then(data => {
         if (data.topology?.intersections) {
-          const filtered = data.topology.intersections.filter(
-            i => i.intersection_id === 'I1' || i.intersection_id === 'I2'
-          );
-          setIntersections(filtered);
+          setIntersections(data.topology.intersections);
           setActiveCorridors(data.topology.active_corridors || []);
         }
         if (data.active_events) {
@@ -64,10 +67,7 @@ export default function App() {
         try {
           const data = JSON.parse(event.data);
           if (data.intersections) {
-            const filtered = data.intersections.filter(
-              i => i.intersection_id === 'I1' || i.intersection_id === 'I2'
-            );
-            setIntersections(filtered);
+            setIntersections(data.intersections);
             setActiveCorridors(data.active_corridors || []);
           }
         } catch (e) {
@@ -100,6 +100,21 @@ export default function App() {
       .then(fetchState);
   };
 
+  const handleSelectPlateForTracking = (plate) => {
+    fetch(getApiUrl(`/api/trajectories/${plate}`))
+      .then(res => res.json())
+      .then(resData => {
+        if (resData.status === 'success' && resData.data) {
+          setActiveTrajectory(resData.data);
+          const gisElem = document.getElementById('section-gis');
+          if (gisElem) {
+            gisElem.scrollIntoView({ behavior: 'smooth' });
+          }
+        }
+      })
+      .catch(err => console.warn('Failed to load plate trajectory:', err));
+  };
+
   const handleReturnHome = () => {
     setActiveTab('overview');
     const elem = document.getElementById('section-overview');
@@ -112,7 +127,7 @@ export default function App() {
 
   return (
     <div className="app-container">
-      {/* Fixed Subtle Background Watermark Image */}
+      {/* Fixed Background Watermark Image */}
       <img 
         src="/logo.jpg" 
         alt="" 
@@ -136,52 +151,75 @@ export default function App() {
       <HeroSection />
 
       <main className="dashboard-main">
-        {/* System Overview Panels */}
+        {/* 1. System Overview & KPI Metrics */}
         <NetworkOverview 
-          activeIntersectionsCount={intersections.length || 2}
+          activeIntersectionsCount={4}
           activeEvents={activeEvents}
           activeCorridors={activeCorridors}
         />
 
-        {/* Traffic Network Status */}
-        <TrafficNetworkMap intersections={intersections} />
-
-        {/* Live Event Monitor */}
-        <EventMonitor 
-          activeEvents={activeEvents}
-          onClearEvents={handleClearEvents}
+        {/* 2. Real GIS Spatial Trajectory Map (Hyderabad Smart Corridor) */}
+        <GISTrajectoryMap 
+          activeTrajectory={activeTrajectory}
+          onSelectPlate={handleSelectPlateForTracking}
         />
 
-        {/* Signal Status */}
-        <SignalStatus intersections={intersections} />
+        {/* 3. Single Plate Trajectory Reconstruction Engine */}
+        <PlateTrajectorySearch 
+          onTrajectoryLoaded={setActiveTrajectory}
+          currentTrajectory={activeTrajectory}
+        />
 
-        {/* Deterministic Safety Test Suite for Judges */}
-        <SafetyTestPanel />
+        {/* 4. Real ANPR / OCR Recognition Stream & Empirical Benchmark */}
+        <ANPRSightingsFeed 
+          onSelectPlate={handleSelectPlateForTracking}
+        />
 
-        {/* CCTV Camera Stream Feeds */}
+        {/* 5. Urban Traffic Flow Analytics & Macro Intelligence */}
+        <TrafficAnalyticsPanel />
+
+        {/* 6. Security Watchlist & Real-Time Alert Engine */}
+        <WatchlistManager />
+
+        {/* 7. CCTV Multi-Camera Grid (Preserved) */}
         <CameraFeedMonitor
           intersections={intersections}
           onTriggerVisionDetection={fetchState}
           onReturnHome={handleReturnHome}
         />
 
-        {/* Autonomous AI Reasoning Layer */}
+        {/* 8. 4-Way Left-Hand Traffic (LHT) Intersection Visualizers (Preserved) */}
+        <TrafficNetworkMap intersections={intersections} />
+
+        {/* 9. Live Event Monitor Table (Preserved) */}
+        <EventMonitor 
+          activeEvents={activeEvents}
+          onClearEvents={handleClearEvents}
+        />
+
+        {/* 10. Signal Status & Movement Permitted States (Preserved) */}
+        <SignalStatus intersections={intersections} />
+
+        {/* 11. Deterministic Movement Safety Test Suite for Judges (Preserved) */}
+        <SafetyTestPanel />
+
+        {/* 12. Autonomous AI Reasoning Layer via Featherless (Preserved) */}
         <AIReasoningPanel />
 
-        {/* System Information Disclosure */}
+        {/* 13. System Information Disclosure (Preserved) */}
         <SystemInformation />
       </main>
 
       {/* Institutional Footer */}
       <footer className="gov-footer">
         <div>
-          <strong>TRINETRA</strong> — Emergency-Aware, Self-Healing Traffic Signal Network
+          <strong>NexTrAI</strong> — City-Wide AI Engine for Multi-Camera ANPR Trajectory Tracking & Urban Traffic Analytics
         </div>
         <div>
-          Hackathon Prototype Demonstration | For Research and Evaluation Purposes
+          Bharat Electronics Limited (BEL) | Smart India Hackathon PS 26127 Prototype
         </div>
         <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: '#64748b' }}>
-          © 2026 Trinetra. All rights reserved.
+          © 2026 NexTrAI. All rights reserved.
         </div>
       </footer>
     </div>
