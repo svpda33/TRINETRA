@@ -49,8 +49,15 @@ async def trigger_event(req: EventTriggerRequest):
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/clear")
-async def clear_events():
-    """Clears all active simulation events and resets network signals to baseline."""
-    simulation_engine.clear_events()
+@router.post("/reset")
+async def clear_events(with_ambulance: bool = True):
+    """
+    Resets network signals, clears stale events, and initiates P1 Emergency Ambulance
+    green wave corridor priority first.
+    """
+    simulation_engine.clear_events(with_ambulance=with_ambulance)
     await simulation_engine.broadcast_state()
-    return {"status": "cleared", "message": "All active simulation events cleared."}
+    return {
+        "status": "reset_with_ambulance_p1",
+        "message": "Reset executed: P1 Emergency Ambulance green wave priority initiated on I1 NORTH."
+    }

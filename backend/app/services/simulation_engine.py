@@ -237,12 +237,24 @@ class SimulationEngine:
         from app.services.cv_detector import cv_detector
 
         # Advance YOLO frame-by-frame tracking & corridor state
+        was_tracking = cv_detector.is_tracking_active()
         tracking_data = cv_detector.tick_tracking()
 
         active_emergencies = [e for e in self.active_events if e.is_active and e.category == PriorityCategory.EMERGENCY_VEHICLE]
 
+        # Auto-retire emergency event once ambulance clears corridor (>18s)
+        if was_tracking and not cv_detector.is_tracking_active() and active_emergencies:
+            for evt in active_emergencies:
+                evt.is_active = False
+            for node in self.intersections.values():
+                node.active_events = [e for e in node.active_events if e.is_active]
+                if node.current_priority == PriorityCategory.EMERGENCY_VEHICLE:
+                    node.current_priority = PriorityCategory.NORMAL
+            active_emergencies = []
+            logger.info("Ambulance priority cleared across all intersections. Resumed normal progression.")
+
         # Auto-trigger tracking if emergency event exists but tracker is idle
-        if active_emergencies and not cv_detector.is_tracking_active():
+        elif active_emergencies and not cv_detector.is_tracking_active():
             evt = active_emergencies[0]
             t_node = getattr(evt, "target_node", "I1") or "I1"
             t_app = getattr(evt, "approach", "NORTH") or "NORTH"
@@ -443,10 +455,10 @@ class SimulationEngine:
             description=f"Priority {cat_enum.value} detected at {target_node} ({approach} Approach). Coordinated signal preemption requested.",
             timestamp=timestamp_str,
             source=f"CAM_{target_node}_{approach}",
-            is_active=True
+            is_active=True,
+            approach=approach,
+            target_node=target_node
         )
-        setattr(event, "approach", approach)
-        setattr(event, "target_node", target_node)
         
         self.active_events.insert(0, event)
         if target_node in self.intersections:
@@ -460,7 +472,7 @@ class SimulationEngine:
         logger.info(f"Triggered priority event {event.event_id}: {event.category} at {target_node} ({approach})")
         return event
 
-    def clear_events(self):
+    def clear_events(self, with_ambulance: bool = True):
         from app.services.cv_detector import cv_detector
         cv_detector.clear_detections()
 
@@ -475,6 +487,16 @@ class SimulationEngine:
             ctrl["phase_state"] = "GREEN"
             ctrl["state_elapsed"] = 0
             ctrl["approach_idx"] = 0
-        logger.info("Cleared all simulation events.")
+
+        if with_ambulance:
+            # On reset: Immediately inject P1 Ambulance emergency event so ambulance gets first priority!
+            self.trigger_event(PriorityCategory.EMERGENCY_VEHICLE.value, target_node="I1", approach="NORTH")
+            logger.info("Reset executed: P1 Ambulance emergency preemption initiated on I1 NORTH.")
+        else:
+            logger.info("Cleared all simulation events.")
+
+    def reset_with_ambulance(self):
+        """Explicit helper to reset and dispatch P1 Ambulance priority immediately."""
+        return self.clear_events(with_ambulance=True)
 
 simulation_engine = SimulationEngine()

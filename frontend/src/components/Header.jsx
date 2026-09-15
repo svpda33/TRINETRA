@@ -61,8 +61,13 @@ export default function Header({ backendConnected, isSimulating, onStartSim, onS
                 <Play size={12} /> RUN CYCLE
               </button>
             )}
-            <button onClick={onClearSim} className="gov-btn gov-btn-secondary" style={{ fontSize: '0.725rem', padding: '0.2rem 0.5rem' }}>
-              <RotateCcw size={12} /> RESET
+            <button 
+              onClick={onClearSim} 
+              className="gov-btn gov-btn-secondary" 
+              style={{ fontSize: '0.725rem', padding: '0.2rem 0.5rem' }}
+              title="Reset network and let P1 Emergency Ambulance go first"
+            >
+              <RotateCcw size={12} /> RESET (AMBULANCE P1)
             </button>
           </div>
 

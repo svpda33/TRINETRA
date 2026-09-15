@@ -95,8 +95,7 @@ export default function App() {
   };
 
   const handleClearEvents = () => {
-    fetch(getApiUrl('/api/simulation/clear'), { method: 'POST' })
-      .then(() => fetch(getApiUrl('/api/vision/clear-detections'), { method: 'POST' }))
+    fetch(getApiUrl('/api/simulation/reset'), { method: 'POST' })
       .then(fetchState);
   };
 

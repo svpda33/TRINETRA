@@ -104,6 +104,8 @@ class ActiveEvent(BaseModel):
     timestamp: str
     source: str
     is_active: bool = True
+    approach: Optional[str] = "NORTH"
+    target_node: Optional[str] = "I1"
 
 class Intersection(BaseModel):
     """Full representation of a traffic signal network node."""
