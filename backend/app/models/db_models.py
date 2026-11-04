@@ -102,3 +102,41 @@ class TrafficMetricModel(Base):
     timestamp = Column(DateTime, default=datetime.utcnow, index=True)
 
     camera = relationship("CameraModel", back_populates="metrics")
+
+
+class EmergencyEventModel(Base):
+    """Persistent audit log of emergency priority activations across city intersections."""
+    __tablename__ = "emergency_events"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    event_id = Column(String, index=True, nullable=False)
+    trigger_camera_id = Column(String, nullable=False)
+    intersection_id = Column(String, index=True, nullable=False)
+    approach = Column(String, nullable=False)  # NORTH, SOUTH, EAST, WEST
+    vehicle_class = Column(String, default="AMBULANCE")
+    track_id = Column(Integer, default=0)
+    trigger_source = Column(String, default="OPERATOR_TRIGGERED_OR_V2X_SIMULATED")
+    status = Column(String, default="ACTIVE", index=True)  # ACTIVE, RELEASED, STALE_RESTART_INVALIDATED, CANCELLED
+    initiated_at = Column(DateTime, default=datetime.utcnow, index=True)
+    released_at = Column(DateTime, nullable=True)
+    duration_sec = Column(Float, default=0.0)
+    release_reason = Column(String, default="")
+    notes = Column(String, default="")
+
+
+class CorridorScheduleModel(Base):
+    """Persistent tracking of staged downstream corridor preemption activations."""
+    __tablename__ = "corridor_schedules"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    schedule_id = Column(String, unique=True, index=True, nullable=False)
+    event_id = Column(String, index=True, nullable=False)
+    upstream_iid = Column(String, nullable=False)
+    downstream_iid = Column(String, nullable=False)
+    approach = Column(String, nullable=False)
+    target_activation_timestamp = Column(Float, nullable=False)
+    staged_delay_sec = Column(Float, default=0.0)
+    status = Column(String, default="PENDING_STAGED_ACTIVATION", index=True)  # PENDING_STAGED_ACTIVATION, ACTIVATED, CANCELLED, STALE_RESTART_INVALIDATED
+    created_at = Column(DateTime, default=datetime.utcnow)
+    activated_at = Column(DateTime, nullable=True)
+

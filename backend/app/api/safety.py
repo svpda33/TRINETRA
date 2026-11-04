@@ -1,4 +1,4 @@
-"""Safety Test Runner API Endpoint for Hackathon Judges."""
+"""Deterministic Movement Safety Test Runner API Endpoint."""
 
 from fastapi import APIRouter
 from typing import List, Dict, Any
@@ -8,7 +8,7 @@ router = APIRouter(prefix="/api/safety", tags=["Safety Validator"])
 
 @router.get("/run-tests")
 def run_safety_suite() -> Dict[str, Any]:
-    """Runs the 8 deterministic movement safety tests for hackathon validation."""
+    """Runs the 8 deterministic movement safety tests for IRC:67 conflict verification."""
     tests = [
         {
             "test_id": "TEST_01",

@@ -1,0 +1,25 @@
+{
+  "camera_id": "CAM_I2_WEST",
+  "intersection_id": "I2",
+  "schema_version": "1.0.0",
+  "source_identity": {
+    "video_filename": "I2_WEST.mp4",
+    "source_path": "/videos/I2_WEST.mp4",
+    "md5_checksum": "18c31b877636f5c65eac5a865a506122",
+    "is_live_stream": false,
+    "is_duplicate": true,
+    "duplicate_of_camera_id": "CAM_I1_NORTH",
+    "is_independent_observation": false
+  },
+  "reference_resolution": [768, 432],
+  "coordinate_system": "NORMALIZED_IMAGE_COORDINATES_0_TO_1",
+  "anchor_strategy": "CENTROID",
+  "readiness_status": "DUPLICATE",
+  "is_calibrated": false,
+  "approach": null,
+  "lanes": [],
+  "stop_line": null,
+  "conflict_zone": null,
+  "departure_zone": null,
+  "notes": "Task 0 audit: DUPLICATE alias of CAM_I1_NORTH (identical MD5 hash 18c31b87...). Does not count as an independent I2 camera and must not contribute independent traffic observations."
+}

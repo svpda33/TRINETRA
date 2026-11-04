@@ -1,0 +1,105 @@
+{
+  "camera_id": "CAM_I1_WEST",
+  "intersection_id": "I1",
+  "schema_version": "1.0.0",
+  "source_identity": {
+    "video_filename": "I1_WEST.mp4",
+    "source_path": "/videos/I1_WEST.mp4",
+    "md5_checksum": "c621b6f08c25b0664146aa12556085fb",
+    "is_live_stream": false,
+    "is_duplicate": false,
+    "duplicate_of_camera_id": null,
+    "is_independent_observation": true
+  },
+  "reference_resolution": [1920, 1080],
+  "coordinate_system": "NORMALIZED_IMAGE_COORDINATES_0_TO_1",
+  "anchor_strategy": "TIRE_CONTACT",
+  "readiness_status": "READY",
+  "is_calibrated": true,
+  "approach": {
+    "approach_id": "APPR_I1_WEST",
+    "intersection_id": "I1",
+    "direction": "WEST",
+    "queue_region": {
+      "points": [
+        {"x": 0.10, "y": 0.48},
+        {"x": 0.92, "y": 0.48},
+        {"x": 0.99, "y": 0.99},
+        {"x": 0.10, "y": 0.99}
+      ]
+    },
+    "associated_lane_ids": [
+      "LANE_I1_WEST_1",
+      "LANE_I1_WEST_2",
+      "LANE_I1_WEST_3"
+    ],
+    "stop_line_id": "SL_I1_WEST",
+    "permitted_movements": [
+      "W_TO_N",
+      "W_TO_E",
+      "W_TO_S"
+    ],
+    "is_calibrated": true
+  },
+  "lanes": [
+    {
+      "lane_id": "LANE_I1_WEST_1",
+      "lane_number": 1,
+      "lane_type": "LEFT_TURN",
+      "permitted_movements": ["W_TO_N"],
+      "polygon": {
+        "points": [
+          {"x": 0.15, "y": 0.48},
+          {"x": 0.42, "y": 0.48},
+          {"x": 0.42, "y": 0.99},
+          {"x": 0.10, "y": 0.99}
+        ]
+      },
+      "is_calibrated": true
+    },
+    {
+      "lane_id": "LANE_I1_WEST_2",
+      "lane_number": 2,
+      "lane_type": "THROUGH",
+      "permitted_movements": ["W_TO_E"],
+      "polygon": {
+        "points": [
+          {"x": 0.42, "y": 0.48},
+          {"x": 0.64, "y": 0.48},
+          {"x": 0.64, "y": 0.99},
+          {"x": 0.42, "y": 0.99}
+        ]
+      },
+      "is_calibrated": true
+    },
+    {
+      "lane_id": "LANE_I1_WEST_3",
+      "lane_number": 3,
+      "lane_type": "SHARED_THROUGH_RIGHT",
+      "permitted_movements": ["W_TO_E", "W_TO_S"],
+      "polygon": {
+        "points": [
+          {"x": 0.64, "y": 0.48},
+          {"x": 0.92, "y": 0.48},
+          {"x": 0.99, "y": 0.99},
+          {"x": 0.64, "y": 0.99}
+        ]
+      },
+      "is_calibrated": true
+    }
+  ],
+  "stop_line": {
+    "line_id": "SL_I1_WEST",
+    "p1": {"x": 0.15, "y": 0.52},
+    "p2": {"x": 0.92, "y": 0.52},
+    "normal_vector": [0.0, -1.0],
+    "tolerance_norm": 0.025,
+    "is_enabled": true,
+    "is_calibrated": true,
+    "approach_id": "APPR_I1_WEST",
+    "associated_movements": ["W_TO_N", "W_TO_E", "W_TO_S"]
+  },
+  "conflict_zone": null,
+  "departure_zone": null,
+  "notes": "Calibrated from real video detections. 3 distinct approach queue lanes with upward travel direction towards the intersection."
+}

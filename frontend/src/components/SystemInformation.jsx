@@ -19,15 +19,15 @@ export default function SystemInformation() {
             <span className="info-val">NexTrAI</span>
           </div>
           <div className="info-item-row">
-            <span className="info-label">Challenge ID:</span>
+            <span className="info-label">Category:</span>
             <span className="info-val" style={{ color: '#059669', fontWeight: 700 }}>
-              SIH 26127 (Bharat Electronics Limited)
+              Intelligent Transportation Systems (ITS)
             </span>
           </div>
           <div className="info-item-row">
             <span className="info-label">Primary Purpose:</span>
             <span className="info-val" style={{ fontSize: '0.75rem', fontFamily: 'sans-serif' }}>
-              Multi-Camera ANPR Trajectory Tracking & Urban Traffic Analytics
+              Urban Traffic Intelligence & Management Platform
             </span>
           </div>
           <div className="info-item-row">

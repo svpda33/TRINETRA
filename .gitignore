@@ -30,21 +30,32 @@ wheels/
 .env.*.local
 *.pem
 
-# Database & Snapshots
-*.sqlite
-*.sqlite3
-*.db
-backend/data/snapshots/*
-!backend/data/snapshots/.gitkeep
-
 # Node / React
 node_modules/
+frontend/dist/
+frontend/dist-ssr/
+dist/
+dist-frontend/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 .vite/
-dist-frontend/
+
+# Testing & Logs
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+
+# Database & Runtime Data
+*.sqlite
+*.sqlite3
+*.db
+data/*.db
+data/snapshots/*
+backend/data/snapshots/*
+!backend/data/snapshots/.gitkeep
 
 # IDE / OS
 .vscode/

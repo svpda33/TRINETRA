@@ -84,10 +84,11 @@ class IoUMultiObjectTracker:
     Associates predicted bounding boxes with YOLO detections using maximum IoU bipartite matching.
     """
 
-    def __init__(self, iou_threshold: float = 0.25, max_lost_frames: int = 12, start_id: int = 101):
+    def __init__(self, iou_threshold: float = 0.25, max_lost_frames: int = 12, start_id: int = 101, min_hits: int = 2):
         self.iou_threshold = iou_threshold
         self.max_lost_frames = max_lost_frames
         self.next_track_id = start_id
+        self.min_hits = min_hits
         self.tracks: Dict[int, TrackedObject] = {}
 
     def update(self, detections: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -149,6 +150,10 @@ class IoUMultiObjectTracker:
         results = []
         for tid, trk in self.tracks.items():
             if trk.time_since_update == 0:  # Currently visible in this frame
+                # Suppress 1-frame low-confidence flickers (ephemeral tracks)
+                if trk.hits < self.min_hits and trk.confidence < 0.50:
+                    continue
+
                 cx = (trk.bbox[0] + trk.bbox[2]) // 2
                 cy = (trk.bbox[1] + trk.bbox[3]) // 2
                 vx, vy = trk.velocity
@@ -211,7 +216,13 @@ class CVEngine:
             return []
 
         model = self.get_model()
-        results = model.predict(source=frame, conf=conf_threshold, verbose=False)
+        results = model.predict(
+            source=frame,
+            conf=conf_threshold,
+            classes=[2, 3, 5, 7],
+            agnostic_nms=True,
+            verbose=False
+        )
         
         detections = []
         if not results or len(results) == 0:
@@ -244,9 +255,12 @@ class CVEngine:
             bh = y2 - y1
 
             v_class = self.VEHICLE_CLASSES[cls_id]
-            # Heuristic for Indian 3-wheeler auto-rickshaws
-            if v_class == "CAR" and 0.6 < (bw / max(1, bh)) < 1.15 and bw < (w * 0.28):
-                v_class = "AUTO_RICKSHAW"
+            # Heuristic for Indian 3-wheeler auto-rickshaws (compact aspect ratio and limited frame footprint)
+            if v_class == "CAR":
+                is_compact_ar = 0.65 < (bw / max(1, bh)) < 1.10
+                is_compact_size = bw < (w * 0.20) and (bw * bh) < (w * h * 0.05)
+                if is_compact_ar and is_compact_size:
+                    v_class = "AUTO_RICKSHAW"
 
             detections.append({
                 "class_label": v_class,
@@ -257,6 +271,21 @@ class CVEngine:
                 "height": bh,
                 "aspect_ratio": round(bw / max(1, bh), 2)
             })
+
+        # Cross-class IoU deduplication: if multiple classes detect the exact same object (IoU >= 0.55),
+        # retain the detection with higher confidence
+        if len(detections) > 1:
+            detections.sort(key=lambda d: d["confidence"], reverse=True)
+            deduped = []
+            for d in detections:
+                has_overlap = False
+                for k in deduped:
+                    if compute_iou(d["bbox"], k["bbox"]) >= 0.55:
+                        has_overlap = True
+                        break
+                if not has_overlap:
+                    deduped.append(d)
+            detections = deduped
 
         return detections
 
@@ -271,10 +300,19 @@ class CVEngine:
         tracker = self.get_tracker(camera_id)
         tracked_objects = tracker.update(raw_dets)
 
+        h, w = frame.shape[:2] if frame is not None and frame.size > 0 else (1080, 1920)
         class_counts: Dict[str, int] = {}
         for obj in tracked_objects:
             lbl = obj["class_label"]
             class_counts[lbl] = class_counts.get(lbl, 0) + 1
+            x1, y1, x2, y2 = obj["bbox"]
+            obj["bbox_pct"] = {
+                "left": round((x1 / max(1, w)) * 100.0, 2),
+                "top": round((y1 / max(1, h)) * 100.0, 2),
+                "width": round(((x2 - x1) / max(1, w)) * 100.0, 2),
+                "height": round(((y2 - y1) / max(1, h)) * 100.0, 2)
+            }
+            obj["frame_size"] = [w, h]
 
         return tracked_objects, class_counts
 

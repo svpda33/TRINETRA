@@ -24,7 +24,7 @@ export default function SafetyTestPanel() {
       <div className="gov-section-header">
         <div className="gov-section-title">
           <ShieldCheck size={18} />
-          <span>DETERMINISTIC MOVEMENT SAFETY TEST SUITE (HACKATHON VERIFICATION)</span>
+          <span>DETERMINISTIC MOVEMENT SAFETY TEST SUITE (IRC:67 CONFLICT VERIFICATION)</span>
         </div>
         <button
           onClick={handleRunTests}
@@ -121,7 +121,7 @@ export default function SafetyTestPanel() {
           color: '#64748b',
           fontSize: '0.825rem'
         }}>
-          Click <strong>"Run All 8 Safety Tests"</strong> to execute deterministic 12-movement conflict matrix verification for hackathon judges.
+          Click <strong>"Run All 8 Safety Tests"</strong> to execute deterministic 12-movement conflict matrix verification according to IRC:67 guidelines.
         </div>
       )}
     </div>

@@ -1,4 +1,4 @@
-"""Comprehensive Unit and Verification Tests for NexTrAI (SIH PS 26127)."""
+"""Comprehensive Unit and Verification Tests for NexTrAI Urban Traffic Intelligence Platform."""
 
 import pytest
 from app.services.safety_validator import safety_validator
@@ -99,3 +99,47 @@ def test_watchlist_service():
     # Clean plate
     clean_match = watchlist_service.check_watchlist("TS07XY9999")
     assert clean_match is None
+
+def test_cv_engine_iou_and_tracking():
+    """Verify CV Engine IoU calculation, track persistence, and flicker suppression."""
+    from app.services.cv_engine import compute_iou, IoUMultiObjectTracker, cv_engine
+    
+    # 1. IoU calculation
+    boxA = [100, 100, 200, 200]
+    boxB = [100, 100, 200, 200]
+    assert compute_iou(boxA, boxB) == 1.0
+
+    boxC = [150, 100, 250, 200]
+    iou = compute_iou(boxA, boxC)
+    assert 0.30 < iou < 0.40
+
+    boxD = [300, 300, 400, 400]
+    assert compute_iou(boxA, boxD) == 0.0
+
+    # 2. IoUMultiObjectTracker lifecycle and min_hits confirmation
+    tracker = IoUMultiObjectTracker(min_hits=2, start_id=200)
+
+    # Frame 1: Tentative low-confidence detection should be suppressed
+    f1_dets = [
+        {"bbox": [100, 100, 200, 200], "class_label": "CAR", "confidence": 0.38},
+        {"bbox": [500, 500, 600, 600], "class_label": "BUS", "confidence": 0.85}
+    ]
+    t1 = tracker.update(f1_dets)
+    # The high confidence BUS should immediately appear, low conf CAR suppressed on hits=1
+    assert any(t["class_label"] == "BUS" for t in t1)
+    assert not any(t["class_label"] == "CAR" for t in t1)
+
+    # Frame 2: When CAR is detected again (hits=2), it becomes confirmed
+    f2_dets = [
+        {"bbox": [102, 102, 202, 202], "class_label": "CAR", "confidence": 0.42},
+        {"bbox": [505, 505, 605, 605], "class_label": "BUS", "confidence": 0.88}
+    ]
+    t2 = tracker.update(f2_dets)
+    assert any(t["class_label"] == "CAR" for t in t2)
+    assert any(t["class_label"] == "BUS" for t in t2)
+
+    # Persistent IDs should be maintained
+    car_track = next(t for t in t2 if t["class_label"] == "CAR")
+    bus_track = next(t for t in t2 if t["class_label"] == "BUS")
+    assert car_track["hits"] == 2
+    assert bus_track["hits"] == 2

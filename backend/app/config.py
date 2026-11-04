@@ -53,8 +53,8 @@ class Settings(BaseSettings):
         }
     }
 
-    FEATHERLESS_API_KEY: str = os.getenv("FEATHERLESS_API_KEY", "")
-    FEATHERLESS_MODEL: str = os.getenv("FEATHERLESS_MODEL", "meta-llama/Meta-Llama-3.1-70B-Instruct")
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
 
     # Configurable Dynamic Traffic Signal Timing (in seconds)
     MIN_GREEN_TIME: int = 10

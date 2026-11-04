@@ -19,11 +19,11 @@ export default function HeroSection() {
 
       <div className="hero-content">
         <div className="hero-badge">
-          BHARAT ELECTRONICS LIMITED (BEL) — SMART INDIA HACKATHON PS 26127
+          INTELLIGENT TRANSPORTATION SYSTEMS (ITS) • CITY-SCALE PLATFORM
         </div>
         <h1 className="hero-title">NexTrAI</h1>
         <p className="hero-subtitle">
-          City-Wide AI Engine for Multi-Camera ANPR Trajectory Tracking & Urban Traffic Analytics
+          Urban Traffic Intelligence & Management Platform
         </p>
         <p className="hero-desc">
           Unified intelligent platform integrating high-accuracy license plate OCR, spatial-temporal multi-camera tracking, interactive GIS trajectory reconstruction, and macro-level urban traffic intelligence.

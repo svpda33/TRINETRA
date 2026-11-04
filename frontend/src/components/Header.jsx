@@ -9,14 +9,14 @@ export default function Header({ backendConnected, isSimulating, onStartSim, onS
         <div className="top-bar-left">
           <strong style={{ letterSpacing: '0.05em' }}>TRAFFIC MANAGEMENT INFORMATION SYSTEM (TMIS)</strong>
           <span>|</span>
-          <span className="prototype-tag">HACKATHON PROTOTYPE DEMONSTRATION</span>
+          <span className="prototype-tag">URBAN TRAFFIC INTELLIGENCE PLATFORM</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontFamily: 'monospace' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
             <Clock size={12} /> IST (UTC+5:30)
           </span>
           <span>|</span>
-          <span>VERSION 1.0</span>
+          <span>VERSION 2.0</span>
         </div>
       </div>
 
@@ -45,7 +45,7 @@ export default function Header({ backendConnected, isSimulating, onStartSim, onS
           </div>
           <div className="title-group">
             <h1>NexTrAI</h1>
-            <p>City-Wide Multi-Camera ANPR Trajectory Tracking & Urban Traffic Analytics</p>
+            <p>Urban Traffic Intelligence & Management Platform</p>
           </div>
         </div>
 

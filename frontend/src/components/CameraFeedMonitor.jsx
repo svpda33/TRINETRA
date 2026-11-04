@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Maximize2, X, Video, AlertTriangle, VideoOff } from 'lucide-react';
 import { getApiUrl } from '../config';
 
@@ -15,6 +15,10 @@ export default function CameraFeedMonitor({ intersections = [], onTriggerVisionD
   const [fullscreenCam, setFullscreenCam] = useState(null);
   const [currentTime, setCurrentTime] = useState('');
   const [apiDetections, setApiDetections] = useState({});
+  const [cameraStatuses, setCameraStatuses] = useState({});
+  const [activeTracks, setActiveTracks] = useState({});
+  const [processingBatch, setProcessingBatch] = useState({});
+  const [feedActionLoading, setFeedActionLoading] = useState({});
   const [videoErrors, setVideoErrors] = useState({});
 
   const videoRefs = useRef({});
@@ -32,10 +36,10 @@ export default function CameraFeedMonitor({ intersections = [], onTriggerVisionD
       crossStreet: 'Hitec City Main Rd',
       mainStreet: 'Cyber Towers Flyover',
       cameras: [
-        { camId: 'CAM_I1_NORTH', dir: 'NORTH', backendCamId: 'CAM_I1', videoSrc: '/videos/I1_NORTH.mp4' },
-        { camId: 'CAM_I1_SOUTH', dir: 'SOUTH', backendCamId: 'CAM_I1', videoSrc: '/videos/I1_SOUTH.mp4' },
-        { camId: 'CAM_I1_EAST',  dir: 'EAST',  backendCamId: 'CAM_I1', videoSrc: '/videos/I1_EAST.mp4' },
-        { camId: 'CAM_I1_WEST',  dir: 'WEST',  backendCamId: 'CAM_I1', videoSrc: '/videos/I1_WEST.mp4' }
+        { camId: 'CAM_I1_NORTH', dir: 'NORTH', backendCamId: 'CAM_I1_NORTH', videoSrc: '/videos/I1_NORTH.mp4' },
+        { camId: 'CAM_I1_SOUTH', dir: 'SOUTH', backendCamId: 'CAM_I1_SOUTH', videoSrc: '/videos/I1_SOUTH.mp4' },
+        { camId: 'CAM_I1_EAST',  dir: 'EAST',  backendCamId: 'CAM_I1_EAST', videoSrc: '/videos/I1_EAST.mp4' },
+        { camId: 'CAM_I1_WEST',  dir: 'WEST',  backendCamId: 'CAM_I1_WEST', videoSrc: '/videos/I1_WEST.mp4' }
       ]
     },
     I2: {
@@ -44,10 +48,10 @@ export default function CameraFeedMonitor({ intersections = [], onTriggerVisionD
       crossStreet: 'Mindspace Inorbit Rd',
       mainStreet: 'Hitec City Main Rd',
       cameras: [
-        { camId: 'CAM_I2_NORTH', dir: 'NORTH', backendCamId: 'CAM_I2', videoSrc: '/videos/I2_NORTH.mp4' },
-        { camId: 'CAM_I2_SOUTH', dir: 'SOUTH', backendCamId: 'CAM_I2', videoSrc: '/videos/I2_SOUTH.mp4' },
-        { camId: 'CAM_I2_EAST',  dir: 'EAST',  backendCamId: 'CAM_I2', videoSrc: '/videos/I2_EAST.mp4' },
-        { camId: 'CAM_I2_WEST',  dir: 'WEST',  backendCamId: 'CAM_I2', videoSrc: '/videos/I2_WEST.mp4' }
+        { camId: 'CAM_I2_NORTH', dir: 'NORTH', backendCamId: 'CAM_I2_NORTH', videoSrc: '/videos/I2_NORTH.mp4' },
+        { camId: 'CAM_I2_SOUTH', dir: 'SOUTH', backendCamId: 'CAM_I2_SOUTH', videoSrc: '/videos/I2_SOUTH.mp4' },
+        { camId: 'CAM_I2_EAST',  dir: 'EAST',  backendCamId: 'CAM_I2_EAST', videoSrc: '/videos/I2_EAST.mp4' },
+        { camId: 'CAM_I2_WEST',  dir: 'WEST',  backendCamId: 'CAM_I2_WEST', videoSrc: '/videos/I2_WEST.mp4' }
       ]
     }
   };
@@ -172,35 +176,55 @@ export default function CameraFeedMonitor({ intersections = [], onTriggerVisionD
   // Helper to resolve detection details and automatic priority
   const getDetectionDetails = (det) => {
     if (!det) return null;
-    const rawLabel = (det.class_label || det.vehicle_type || '').toUpperCase();
+    const rawLabel = (det.class_label || det.vehicle_type || "").toUpperCase();
 
-    if (rawLabel.includes('AMBULANCE')) {
+    if (rawLabel.includes("AMBULANCE")) {
       return {
-        title: 'AMBULANCE DETECTED',
-        subtitle: 'EMERGENCY VEHICLE',
-        priority: 'PRIORITY P1',
-        color: '#dc2626',
+        title: "AMBULANCE (OPERATOR / V2X TRIGGER)",
+        subtitle: "EMERGENCY VEHICLE PREEMPTION",
+        priority: "PRIORITY P1",
+        color: "#dc2626",
         confidence: det.confidence || 0.94,
         speed: det.estimated_speed_kmh || 68
       };
     }
-    if (rawLabel.includes('FIRE') || rawLabel.includes('TRUCK')) {
+    if (rawLabel.includes("FIRE")) {
       return {
-        title: 'FIRE ENGINE DETECTED',
-        subtitle: 'EMERGENCY VEHICLE',
-        priority: 'PRIORITY P1',
-        color: '#dc2626',
+        title: "FIRE ENGINE (OPERATOR / V2X TRIGGER)",
+        subtitle: "EMERGENCY VEHICLE PREEMPTION",
+        priority: "PRIORITY P1",
+        color: "#dc2626",
         confidence: det.confidence || 0.96,
         speed: det.estimated_speed_kmh || 58
       };
     }
+    if (rawLabel.includes("TRUCK")) {
+      return {
+        title: "TRUCK DETECTED",
+        subtitle: "HEAVY COMMERCIAL (CIVILIAN)",
+        priority: "NORMAL",
+        color: "#f59e0b",
+        confidence: det.confidence || 0.88,
+        speed: det.estimated_speed_kmh || 42
+      };
+    }
+    if (rawLabel.includes("BUS")) {
+      return {
+        title: "BUS DETECTED",
+        subtitle: "PUBLIC TRANSIT",
+        priority: "PRIORITY P5",
+        color: "#10b981",
+        confidence: det.confidence || 0.91,
+        speed: det.estimated_speed_kmh || 38
+      };
+    }
     return {
       title: `${rawLabel} DETECTED`,
-      subtitle: 'AUTOMATIC CV EVENT',
-      priority: 'PRIORITY P1',
-      color: '#dc2626',
-      confidence: det.confidence || 0.94,
-      speed: det.estimated_speed_kmh || 60
+      subtitle: "AUTOMATIC CCTV CV EVENT",
+      priority: "NORMAL",
+      color: "#0284c7",
+      confidence: det.confidence || 0.90,
+      speed: det.estimated_speed_kmh || 45
     };
   };
 
@@ -216,29 +240,122 @@ export default function CameraFeedMonitor({ intersections = [], onTriggerVisionD
     return () => clearInterval(interval);
   }, []);
 
-  // Poll backend for vision detections
-  const fetchVisionStatus = () => {
-    fetch(getApiUrl('/api/vision/cameras'))
-      .then(res => res.json())
-      .then(data => {
-        if (data.cameras) {
-          const map = {};
-          data.cameras.forEach(c => {
-            if (c.active_detection) {
-              map[c.camera_id] = c.active_detection;
-            }
-          });
-          setApiDetections(map);
-        }
-      })
-      .catch(err => console.warn('Vision status fetch error:', err));
+  // Poll backend for vision detections and real feed status with freshness/stale policy
+  const fetchVisionStatus = useCallback(async () => {
+    try {
+      const res = await fetch(getApiUrl('/api/vision/cameras'));
+      const data = await res.json();
+      if (data && data.cameras) {
+        const detMap = {};
+        const statusMap = {};
+        const tracksMap = {};
+        data.cameras.forEach(c => {
+          if (c.active_detection) {
+            detMap[c.camera_id] = c.active_detection;
+          }
+          if (c.feed_status) {
+            statusMap[c.camera_id] = c.feed_status;
+          }
+          // Policy: If worker is running, accept detections.
+          // If worker is stopped and detection is expired (>10-12s aged or is_expired), clear detections!
+          const isExpired = c.is_expired || (!c.is_running && c.detection_age_sec !== null && c.detection_age_sec !== undefined && c.detection_age_sec > 12.0);
+          if (c.active_detections && c.active_detections.length > 0 && !isExpired) {
+            tracksMap[c.camera_id] = c.active_detections;
+          } else {
+            tracksMap[c.camera_id] = [];
+          }
+        });
+        setApiDetections(detMap);
+        setCameraStatuses(statusMap);
+        setActiveTracks(tracksMap);
+      }
+    } catch (err) {
+      console.warn('Vision status fetch error:', err);
+    }
+  }, []);
+
+  const handleStartFeed = async (camId) => {
+    setFeedActionLoading(prev => ({ ...prev, [camId]: true }));
+    try {
+      await fetch(getApiUrl(`/api/vision/start-feed/${camId}?sample_interval=4`), {
+        method: 'POST'
+      });
+      fetchVisionStatus();
+    } catch (err) {
+      console.error('Error starting camera feed:', err);
+    } finally {
+      setFeedActionLoading(prev => ({ ...prev, [camId]: false }));
+    }
   };
 
+  const handleStopFeed = async (camId) => {
+    setFeedActionLoading(prev => ({ ...prev, [camId]: true }));
+    // Immediately clear active tracks locally upon stop to prevent stale overlays over looping video
+    setActiveTracks(prev => ({ ...prev, [camId]: [] }));
+    try {
+      await fetch(getApiUrl(`/api/vision/stop-feed/${camId}`), {
+        method: 'POST'
+      });
+      fetchVisionStatus();
+    } catch (err) {
+      console.error('Error stopping camera feed:', err);
+    } finally {
+      setFeedActionLoading(prev => ({ ...prev, [camId]: false }));
+    }
+  };
+
+  const handleProcessBatch = async (camId) => {
+    setProcessingBatch(prev => ({ ...prev, [camId]: true }));
+    try {
+      const res = await fetch(getApiUrl(`/api/vision/process-batch/${camId}?max_frames=15`), {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (data && data.active_tracks) {
+        setActiveTracks(prev => ({ ...prev, [camId]: data.active_tracks }));
+      }
+      fetchVisionStatus();
+    } catch (err) {
+      console.error('Error running batch detection:', err);
+    } finally {
+      setProcessingBatch(prev => ({ ...prev, [camId]: false }));
+    }
+  };
+
+  // Adaptive Polling: 800ms when any camera worker is running or processing batch; 4000ms when all idle; pauses when backgrounded
   useEffect(() => {
-    fetchVisionStatus();
-    const interval = setInterval(fetchVisionStatus, 2000);
-    return () => clearInterval(interval);
-  }, []);
+    let timerId = null;
+
+    const poll = async () => {
+      // Pause polling if user switched tabs / minimized window
+      if (document.hidden) {
+        timerId = setTimeout(poll, 3000);
+        return;
+      }
+
+      await fetchVisionStatus();
+
+      const anyRunning = Object.values(cameraStatuses).some(s => s && s.is_running);
+      const anyBatch = Object.values(processingBatch).some(b => b === true);
+      const intervalMs = (anyRunning || anyBatch) ? 800 : 4000;
+
+      timerId = setTimeout(poll, intervalMs);
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchVisionStatus();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    poll();
+
+    return () => {
+      if (timerId) clearTimeout(timerId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [cameraStatuses, processingBatch, fetchVisionStatus]);
 
   // Global Keyboard Escape Listener
   useEffect(() => {
@@ -371,26 +488,55 @@ export default function CameraFeedMonitor({ intersections = [], onTriggerVisionD
     );
   };
 
-  // Helper to render individual CCTV preview card (AUTONOMOUS, NO MANUAL CONTROLS)
+  // Helper to render individual CCTV preview card with Real CV Worker integration
   const renderCameraCard = (camObj) => {
     if (!camObj) return null;
     const rawDet = apiDetections[camObj.backendCamId];
     const detInfo = getDetectionDetails(rawDet);
-    const hasDetection = Boolean(detInfo);
+    const feedStatus = cameraStatuses[camObj.camId] || {};
+    const isWorkerRunning = feedStatus.is_running || false;
+    const isBatchProcessing = processingBatch[camObj.camId] || false;
+    const isActionLoading = feedActionLoading[camObj.camId] || false;
+    const framesCount = feedStatus.frames_processed || 0;
+    const detectionAgeSec = feedStatus.detection_age_sec !== undefined && feedStatus.detection_age_sec !== null
+      ? feedStatus.detection_age_sec
+      : null;
+    const isStale = detectionAgeSec !== null && !isWorkerRunning && detectionAgeSec > 6.0;
+    const isExpired = feedStatus.is_expired || (detectionAgeSec !== null && !isWorkerRunning && detectionAgeSec > 12.0);
+    const currentTracks = isExpired ? [] : (activeTracks[camObj.camId] || []);
+    const vehiclesCount = currentTracks.length;
+    const hasDetection = Boolean(detInfo) || vehiclesCount > 0;
     const hasError = videoErrors[camObj.camId];
     const hasVideo = Boolean(camObj.videoSrc) && !hasError;
     const camState = getCameraContext(camObj, currentNodeData);
 
-    let badgeText = 'STREAM ONLINE';
-    let badgeColor = '#059669';
-    let badgeBg = '#ecfdf5';
-    let badgeBorder = '#a7f3d0';
+    let badgeText = 'REPLAY READY';
+    let badgeColor = '#64748b';
+    let badgeBg = '#f1f5f9';
+    let badgeBorder = '#cbd5e1';
 
-    if (hasDetection) {
+    if (detInfo) {
       badgeText = detInfo.priority;
       badgeColor = detInfo.color;
       badgeBg = `${detInfo.color}15`;
       badgeBorder = `${detInfo.color}40`;
+    } else if (isWorkerRunning) {
+      badgeText = `CCTV REPLAY (${vehiclesCount} VEH)`;
+      badgeColor = '#059669';
+      badgeBg = '#ecfdf5';
+      badgeBorder = '#a7f3d0';
+    } else if (vehiclesCount > 0) {
+      if (isStale) {
+        badgeText = `STALE (${Math.round(detectionAgeSec)}s AGED)`;
+        badgeColor = '#d97706';
+        badgeBg = '#fffbeb';
+        badgeBorder = '#fde68a';
+      } else {
+        badgeText = `CV BATCH (${vehiclesCount} VEH)`;
+        badgeColor = '#0284c7';
+        badgeBg = '#f0f9ff';
+        badgeBorder = '#bae6fd';
+      }
     } else if (!camObj.videoSrc) {
       badgeText = 'SOURCE PENDING';
       badgeColor = '#d97706';
@@ -408,12 +554,12 @@ export default function CameraFeedMonitor({ intersections = [], onTriggerVisionD
         key={camObj.camId}
         style={{
           backgroundColor: '#ffffff',
-          border: hasDetection ? `2px solid ${detInfo.color}` : '1px solid #cbd5e1',
+          border: hasDetection ? `2px solid ${detInfo ? detInfo.color : '#0284c7'}` : '1px solid #cbd5e1',
           borderRadius: '6px',
           padding: '0.65rem',
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: hasDetection ? `0 0 12px ${detInfo.color}40` : '0 1px 3px rgba(0,0,0,0.05)',
+          boxShadow: hasDetection ? `0 0 12px ${detInfo ? detInfo.color : '#0284c7'}30` : '0 1px 3px rgba(0,0,0,0.05)',
           transition: 'all 0.2s ease-in-out'
         }}
       >
@@ -443,25 +589,40 @@ export default function CameraFeedMonitor({ intersections = [], onTriggerVisionD
               {camObj.camId}
             </strong>
           </div>
-          <span style={{
-            fontSize: '0.625rem',
-            fontWeight: 800,
-            color: badgeColor,
-            backgroundColor: badgeBg,
-            border: `1px solid ${badgeBorder}`,
-            padding: '0.1rem 0.4rem',
-            borderRadius: '2px',
-            fontFamily: 'monospace'
-          }}>
-            {badgeText}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+            <span style={{
+              fontSize: '0.525rem',
+              fontWeight: 700,
+              color: '#475569',
+              backgroundColor: '#f8fafc',
+              border: '1px solid #cbd5e1',
+              padding: '0.08rem 0.35rem',
+              borderRadius: '2px',
+              fontFamily: 'monospace'
+            }}>
+              RECORDED REPLAY
+            </span>
+            <span style={{
+              fontSize: '0.625rem',
+              fontWeight: 800,
+              color: badgeColor,
+              backgroundColor: badgeBg,
+              border: `1px solid ${badgeBorder}`,
+              padding: '0.1rem 0.4rem',
+              borderRadius: '2px',
+              fontFamily: 'monospace'
+            }}>
+              {badgeText}
+            </span>
+          </div>
         </div>
 
-        {/* Video Viewport Box with CCTV Overlay */}
+        {/* Video Viewport Box with Exact 16:9 Aspect Ratio Frame Preservation */}
         <div
-          onClick={() => setFullscreenCam({ ...camObj, juncName: currentConfig.name, intersectionId: currentConfig.intersectionId, detInfo })}
+          onClick={() => setFullscreenCam({ ...camObj, juncName: currentConfig.name, intersectionId: currentConfig.intersectionId, detInfo, currentTracks, feedStatus })}
           style={{
-            height: '145px',
+            width: '100%',
+            aspectRatio: '16 / 9',
             backgroundColor: '#0f172a',
             borderRadius: '4px',
             position: 'relative',
@@ -522,7 +683,7 @@ export default function CameraFeedMonitor({ intersections = [], onTriggerVisionD
               loop
               muted
               playsInline
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              style={{ width: '100%', height: '100%', objectFit: 'fill', display: 'block' }}
               onError={() => handleVideoError(camObj.camId)}
             />
           )}
@@ -701,39 +862,113 @@ export default function CameraFeedMonitor({ intersections = [], onTriggerVisionD
             </div>
           )}
 
-          {/* COMPUTER VISION GREEN TRACKING BOUNDING BOX OVERLAY */}
-          {hasDetection && (
+          {/* REAL COMPUTER VISION / YOLOv8 TRACKING BOUNDING BOX OVERLAYS */}
+          {currentTracks && currentTracks.length > 0 ? (
+            <>
+              {/* Asynchronous Frame Synchronization Transparency Badge */}
+              <div style={{
+                position: 'absolute',
+                top: '5px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                backgroundColor: isStale ? 'rgba(180, 83, 9, 0.95)' : 'rgba(15, 23, 42, 0.9)',
+                border: `1px solid ${isStale ? '#f59e0b' : '#38bdf8'}`,
+                color: isStale ? '#fef3c7' : '#e0f2fe',
+                fontSize: '0.475rem',
+                fontFamily: 'monospace',
+                fontWeight: 800,
+                padding: '0.08rem 0.35rem',
+                borderRadius: '3px',
+                pointerEvents: 'none',
+                zIndex: 8,
+                whiteSpace: 'nowrap',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.5)'
+              }}>
+                {isWorkerRunning ? '● CCTV REPLAY' : (isStale ? `⚠ STALE (${Math.round(detectionAgeSec)}s AGED)` : 'ASYNC SNAPSHOT')} • FRAME #{feedStatus.last_frame_idx || 0} (@{feedStatus.video_time_sec || 0}s)
+              </div>
+
+              {currentTracks.slice(0, 8).map((trk) => {
+                const pct = trk.bbox_pct || { left: 20, top: 20, width: 25, height: 25 };
+                const isEmerg = trk.class_label === 'AMBULANCE' || trk.class_label === 'FIRE ENGINE';
+                const isBusTruck = trk.class_label === 'BUS' || trk.class_label === 'TRUCK';
+                const boxColor = isEmerg ? '#ef4444' : (isBusTruck ? '#f59e0b' : '#10b981');
+                return (
+                  <div
+                    key={`track-${trk.tracker_id || trk.track_id}`}
+                    style={{
+                      position: 'absolute',
+                      top: `${pct.top}%`,
+                      left: `${pct.left}%`,
+                      width: `${pct.width}%`,
+                      height: `${pct.height}%`,
+                      border: isStale ? '2px dashed #f59e0b' : `2px solid ${boxColor}`,
+                      borderRadius: '3px',
+                      boxShadow: isStale ? '0 0 8px rgba(245, 158, 11, 0.5)' : `0 0 8px ${boxColor}80`,
+                      opacity: isStale ? 0.75 : 1,
+                      pointerEvents: 'none',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      padding: '2px',
+                      zIndex: 7
+                    }}
+                  >
+                    <div style={{
+                      backgroundColor: isStale ? '#b45309' : boxColor,
+                      color: '#0f172a',
+                      fontSize: '0.5rem',
+                      fontWeight: 900,
+                      fontFamily: 'monospace',
+                      padding: '0.05rem 0.25rem',
+                      borderRadius: '2px',
+                      alignSelf: 'flex-start',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {trk.class_label} #{trk.tracker_id || trk.track_id} | {Math.round((trk.confidence || 0.8) * 100)}%
+                    </div>
+                    {trk.heading && (
+                      <div style={{
+                        fontSize: '0.45rem',
+                        color: isStale ? '#fde68a' : boxColor,
+                        fontFamily: 'monospace',
+                        alignSelf: 'flex-end',
+                        backgroundColor: 'rgba(15,23,42,0.85)',
+                        padding: '0.02rem 0.2rem',
+                        borderRadius: '2px',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {trk.heading}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </>
+          ) : (
+            /* Empty state: No vehicles currently tracked or expired */
             <div style={{
               position: 'absolute',
-              top: '18%',
-              left: '20%',
-              width: '60%',
-              height: '60%',
-              border: '2px solid #10b981',
-              borderRadius: '4px',
-              boxShadow: '0 0 12px rgba(16, 185, 129, 0.7), inset 0 0 12px rgba(16, 185, 129, 0.25)',
-              pointerEvents: 'none',
+              bottom: '22px',
+              left: '6px',
+              right: '6px',
+              backgroundColor: 'rgba(15, 23, 42, 0.75)',
+              border: '1px dashed #475569',
+              borderRadius: '3px',
+              padding: '0.2rem 0.4rem',
               display: 'flex',
-              flexDirection: 'column',
-              justify: 'space-between',
-              padding: '4px',
-              zIndex: 7
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              pointerEvents: 'none',
+              zIndex: 6
             }}>
-              <div style={{
-                backgroundColor: '#10b981',
-                color: '#0f172a',
-                fontSize: '0.55rem',
-                fontWeight: 900,
-                fontFamily: 'monospace',
-                padding: '0.1rem 0.35rem',
-                borderRadius: '2px',
-                alignSelf: 'flex-start'
-              }}>
-                AMBULANCE | ID: 07 | CONF: {Math.round(detInfo.confidence * 100)}% | P1 EMERGENCY
-              </div>
-              <div style={{ fontSize: '0.5rem', color: '#10b981', fontFamily: 'monospace', alignSelf: 'flex-end', backgroundColor: 'rgba(15,23,42,0.85)', padding: '0.05rem 0.25rem', borderRadius: '2px' }}>
-                POSITION TRACKED ({detInfo.speed} km/h)
-              </div>
+              <span style={{ fontSize: '0.525rem', color: isExpired ? '#f59e0b' : '#94a3b8', fontFamily: 'monospace' }}>
+                {isExpired
+                  ? `DETECTIONS EXPIRED (${Math.round(detectionAgeSec || 12)}s AGED) — CLICK 'RUN BATCH'`
+                  : (isWorkerRunning ? `YOLO TRACKING: SCANNING (0 ACTIVE IN FRAME #${feedStatus.last_frame_idx || 0})` : 'WORKER IDLE — NO ACTIVE DETECTIONS')}
+              </span>
+              <span style={{ fontSize: '0.5rem', color: '#64748b', fontFamily: 'monospace' }}>
+                RECORDED REPLAY
+              </span>
             </div>
           )}
 
@@ -757,7 +992,139 @@ export default function CameraFeedMonitor({ intersections = [], onTriggerVisionD
           </div>
         </div>
 
+        {/* Real Backend CV Worker Controls & Status Bar */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: '#0f172a',
+          padding: '0.35rem 0.5rem',
+          borderRadius: '4px',
+          marginTop: '0.35rem',
+          marginBottom: '0.35rem',
+          border: '1px solid #1e293b'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+            <span style={{
+              fontSize: '0.55rem',
+              fontFamily: 'monospace',
+              fontWeight: 800,
+              color: isWorkerRunning ? '#10b981' : (framesCount > 0 ? '#38bdf8' : '#94a3b8')
+            }}>
+              {isWorkerRunning ? `● CV ACTIVE (${framesCount}f)` : (framesCount > 0 ? `○ BATCH DONE (${framesCount}f)` : '○ CV IDLE')}
+            </span>
+            {feedStatus?.last_update && (
+              <span style={{ fontSize: '0.5rem', color: '#64748b', fontFamily: 'monospace' }}>
+                {feedStatus.last_update}
+              </span>
+            )}
+            {detectionAgeSec !== null && !isWorkerRunning && (
+              <span style={{
+                fontSize: '0.475rem',
+                color: isExpired ? '#ef4444' : (isStale ? '#f59e0b' : '#38bdf8'),
+                fontFamily: 'monospace',
+                backgroundColor: 'rgba(255,255,255,0.06)',
+                padding: '0.05rem 0.2rem',
+                borderRadius: '2px'
+              }}>
+                AGE: {Math.round(detectionAgeSec)}s
+              </span>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: '0.3rem' }}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleProcessBatch(camObj.camId);
+              }}
+              disabled={isBatchProcessing}
+              style={{
+                backgroundColor: isBatchProcessing ? '#334155' : '#0284c7',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '3px',
+                padding: '0.15rem 0.45rem',
+                fontSize: '0.55rem',
+                fontWeight: 800,
+                fontFamily: 'monospace',
+                cursor: isBatchProcessing ? 'not-allowed' : 'pointer',
+                transition: 'all 0.15s'
+              }}
+              title="Run real YOLO detection on 15 frames from recorded video"
+            >
+              {isBatchProcessing ? 'RUNNING YOLO...' : 'RUN BATCH (15f)'}
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isWorkerRunning) {
+                  handleStopFeed(camObj.camId);
+                } else {
+                  handleStartFeed(camObj.camId);
+                }
+              }}
+              disabled={isActionLoading}
+              style={{
+                backgroundColor: isWorkerRunning ? '#7f1d1d' : '#064e3b',
+                color: isWorkerRunning ? '#fca5a5' : '#6ee7b7',
+                border: `1px solid ${isWorkerRunning ? '#ef4444' : '#10b981'}`,
+                borderRadius: '3px',
+                padding: '0.15rem 0.45rem',
+                fontSize: '0.55rem',
+                fontWeight: 800,
+                fontFamily: 'monospace',
+                cursor: isActionLoading ? 'not-allowed' : 'pointer'
+              }}
+              title={isWorkerRunning ? "Stop background CV worker" : "Start real background CV inference worker"}
+            >
+              {isActionLoading ? '...' : (isWorkerRunning ? 'STOP FEED' : 'START FEED')}
+            </button>
+          </div>
+        </div>
+
         {/* 2D MINI TRAFFIC SIGNAL INTEGRATED AT BOTTOM OF CARD */}
+        {/* REAL-TIME SPATIAL GEOMETRY & LANE QUEUES (STAGE 3.1) */}
+        {feedStatus?.spatial?.is_calibrated && (
+          <div style={{
+            backgroundColor: '#090d16',
+            border: '1px solid #1e293b',
+            borderRadius: '4px',
+            padding: '0.3rem 0.45rem',
+            marginBottom: '0.35rem',
+            fontSize: '0.55rem',
+            fontFamily: 'monospace',
+            color: '#cbd5e1'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+              <span style={{ color: '#38bdf8', fontWeight: 800 }}>
+                QUEUE: {feedStatus.spatial.queue_vehicle_count} VEH
+              </span>
+              <span style={{ color: '#10b981', fontSize: '0.5rem', fontWeight: 700 }}>
+                CROSSINGS: {feedStatus.spatial.stop_line_crossings_count || 0}
+              </span>
+            </div>
+            {/* Lane Queues & Density Percentages */}
+            <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+              {Object.entries(feedStatus.spatial.lane_queues || {}).map(([lid, cnt]) => {
+                const laneNum = lid.split('_').pop();
+                const density = feedStatus.spatial.lane_densities?.[lid] || 0;
+                const color = density > 75 ? '#ef4444' : (density > 45 ? '#f59e0b' : '#10b981');
+                return (
+                  <span key={lid} style={{
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    border: `1px solid ${color}60`,
+                    borderRadius: '2px',
+                    padding: '0.05rem 0.25rem',
+                    color: '#f8fafc'
+                  }}>
+                    L{laneNum}: <strong style={{ color }}>{cnt}</strong> ({Math.round(density)}%)
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {renderMini2DSignal(camObj.dir)}
       </div>
     );
@@ -771,7 +1138,7 @@ export default function CameraFeedMonitor({ intersections = [], onTriggerVisionD
           <span>CCTV CAMERA DETECTION FEEDS</span>
         </div>
         <span style={{ fontSize: '0.725rem', color: '#64748b', fontFamily: 'monospace' }}>
-          COMPUTER VISION DETECTION LAYER (SIMULATION)
+          COMPUTER VISION DETECTION LAYER (RECORDED CCTV REPLAY • REAL YOLOv8 DETECTION)
         </span>
       </div>
 
@@ -1020,7 +1387,7 @@ export default function CameraFeedMonitor({ intersections = [], onTriggerVisionD
                 </div>
               </div>
 
-              {/* Modal Large Video Viewport */}
+              {/* Modal Large Video Viewport with Strict 16:9 Inner Canvas */}
               <div style={{
                 position: 'relative',
                 width: '100%',
@@ -1031,6 +1398,17 @@ export default function CameraFeedMonitor({ intersections = [], onTriggerVisionD
                 justifyContent: 'center',
                 overflow: 'hidden'
               }}>
+                <div style={{
+                  position: 'relative',
+                  height: '100%',
+                  maxHeight: '480px',
+                  aspectRatio: '16 / 9',
+                  backgroundColor: '#0f172a',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  overflow: 'hidden'
+                }}>
                 {!fullscreenCam.videoSrc ? (
                   <div style={{
                     display: 'flex',
@@ -1077,7 +1455,7 @@ export default function CameraFeedMonitor({ intersections = [], onTriggerVisionD
                     loop
                     muted
                     playsInline
-                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    style={{ width: '100%', height: '100%', objectFit: 'fill', display: 'block' }}
                     onError={() => handleVideoError(fullscreenCam.camId)}
                   />
                 )}
@@ -1091,6 +1469,121 @@ export default function CameraFeedMonitor({ intersections = [], onTriggerVisionD
                   pointerEvents: 'none',
                   opacity: 0.5
                 }} />
+
+                {/* Real Computer Vision Tracking Bounding Boxes (Modal) */}
+                {(() => {
+                  const modalStatus = cameraStatuses[fullscreenCam.camId] || {};
+                  const modalAgeSec = modalStatus.detection_age_sec !== undefined && modalStatus.detection_age_sec !== null
+                    ? modalStatus.detection_age_sec
+                    : null;
+                  const isModalRunning = modalStatus.is_running || false;
+                  const isModalStale = modalAgeSec !== null && !isModalRunning && modalAgeSec > 6.0;
+                  const isModalExpired = modalStatus.is_expired || (modalAgeSec !== null && !isModalRunning && modalAgeSec > 12.0);
+                  const modalTracks = isModalExpired ? [] : (activeTracks[fullscreenCam.camId] || []);
+
+                  if (modalTracks.length > 0) {
+                    return (
+                      <>
+                        <div style={{
+                          position: 'absolute',
+                          top: '12px',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          backgroundColor: isModalStale ? 'rgba(180, 83, 9, 0.95)' : 'rgba(15, 23, 42, 0.92)',
+                          border: `1px solid ${isModalStale ? '#f59e0b' : '#38bdf8'}`,
+                          color: isModalStale ? '#fef3c7' : '#e0f2fe',
+                          fontSize: '0.625rem',
+                          fontFamily: 'monospace',
+                          fontWeight: 800,
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: '4px',
+                          pointerEvents: 'none',
+                          zIndex: 8,
+                          whiteSpace: 'nowrap',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.6)'
+                        }}>
+                          {isModalRunning ? '● CCTV REPLAY' : (isModalStale ? `⚠ STALE SNAPSHOT (${Math.round(modalAgeSec)}s AGED)` : 'ASYNC SNAPSHOT')} • FRAME #{modalStatus.last_frame_idx || 0} (@{modalStatus.video_time_sec || 0}s)
+                        </div>
+
+                        {modalTracks.slice(0, 12).map((trk) => {
+                          const pct = trk.bbox_pct || { left: 20, top: 20, width: 25, height: 25 };
+                          const isEmerg = trk.class_label === 'AMBULANCE' || trk.class_label === 'FIRE ENGINE';
+                          const isBusTruck = trk.class_label === 'BUS' || trk.class_label === 'TRUCK';
+                          const boxColor = isEmerg ? '#ef4444' : (isBusTruck ? '#f59e0b' : '#10b981');
+                          return (
+                            <div
+                              key={`modal-trk-${trk.tracker_id || trk.track_id}`}
+                              style={{
+                                position: 'absolute',
+                                top: `${pct.top}%`,
+                                left: `${pct.left}%`,
+                                width: `${pct.width}%`,
+                                height: `${pct.height}%`,
+                                border: isModalStale ? '2px dashed #f59e0b' : `2px solid ${boxColor}`,
+                                borderRadius: '4px',
+                                boxShadow: isModalStale ? '0 0 10px rgba(245, 158, 11, 0.6)' : `0 0 12px ${boxColor}90`,
+                                opacity: isModalStale ? 0.75 : 1,
+                                pointerEvents: 'none',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'space-between',
+                                padding: '4px',
+                                zIndex: 7
+                              }}
+                            >
+                              <div style={{
+                                backgroundColor: isModalStale ? '#b45309' : boxColor,
+                                color: '#0f172a',
+                                fontSize: '0.65rem',
+                                fontWeight: 900,
+                                fontFamily: 'monospace',
+                                padding: '0.1rem 0.35rem',
+                                borderRadius: '2px',
+                                alignSelf: 'flex-start'
+                              }}>
+                                {trk.class_label} #{trk.tracker_id || trk.track_id} | {Math.round((trk.confidence || 0.8) * 100)}%
+                              </div>
+                              <div style={{
+                                fontSize: '0.55rem',
+                                color: isModalStale ? '#fde68a' : boxColor,
+                                fontFamily: 'monospace',
+                                alignSelf: 'flex-end',
+                                backgroundColor: 'rgba(15,23,42,0.85)',
+                                padding: '0.05rem 0.25rem',
+                                borderRadius: '2px'
+                              }}>
+                                {trk.heading || 'TRACKED'}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </>
+                    );
+                  }
+                  return (
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '40px',
+                      left: '14px',
+                      right: '14px',
+                      backgroundColor: 'rgba(15, 23, 42, 0.8)',
+                      border: '1px dashed #475569',
+                      borderRadius: '4px',
+                      padding: '0.4rem 0.75rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      pointerEvents: 'none',
+                      zIndex: 6
+                    }}>
+                      <span style={{ fontSize: '0.7rem', color: isModalExpired ? '#f59e0b' : '#94a3b8', fontFamily: 'monospace' }}>
+                        {isModalExpired
+                          ? `DETECTIONS EXPIRED (${Math.round(modalAgeSec || 12)}s AGED) — CLICK 'PROCESS BATCH' OR START WORKER`
+                          : (isModalRunning ? `YOLO TRACKING: SCANNING (0 ACTIVE IN FRAME #${modalStatus.last_frame_idx || 0})` : 'CV WORKER IDLE — NO ACTIVE DETECTIONS')}
+                      </span>
+                    </div>
+                  );
+                })()}
 
                 {/* Top-Left HUD Corner Indicator: REC + SIGNAL STATUS */}
                 <div style={{
@@ -1255,6 +1748,7 @@ export default function CameraFeedMonitor({ intersections = [], onTriggerVisionD
                     </div>
                   </div>
                 )}
+                </div> {/* End 16:9 Inner Canvas Stage */}
               </div>
 
               {/* Modal Controls Footer */}
@@ -1262,18 +1756,81 @@ export default function CameraFeedMonitor({ intersections = [], onTriggerVisionD
                 backgroundColor: '#1e293b',
                 padding: '0.85rem 1rem',
                 display: 'flex',
-                justify: 'space-between',
+                justifyContent: 'space-between',
                 alignItems: 'center',
-                borderTop: '1px solid #334155'
+                borderTop: '1px solid #334155',
+                flexWrap: 'wrap',
+                gap: '0.5rem'
               }}>
-                <div style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: fullscreenCam.detInfo ? fullscreenCam.detInfo.color : '#10b981', fontWeight: 700 }}>
-                  {fullscreenCam.detInfo
-                    ? `AUTOMATIC CV DETECTION: ${fullscreenCam.detInfo.title} (${fullscreenCam.detInfo.subtitle} — ${fullscreenCam.detInfo.priority})`
-                    : 'STATUS: AUTOMATIC COMPUTER VISION SURVEILLANCE ACTIVE | STREAM ONLINE'}
+                <div style={{ fontSize: '0.725rem', fontFamily: 'monospace', color: '#38bdf8', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                  <span>
+                    YOLOv8: <strong>{(activeTracks[fullscreenCam.camId] || []).length} VEH</strong>
+                  </span>
+                  <span style={{ color: '#94a3b8' }}>|</span>
+                  <span style={{ color: cameraStatuses[fullscreenCam.camId]?.is_running ? '#10b981' : '#f59e0b' }}>
+                    WORKER: <strong>{cameraStatuses[fullscreenCam.camId]?.is_running ? 'RUNNING' : 'IDLE'}</strong>
+                  </span>
+                  <span style={{ color: '#94a3b8' }}>|</span>
+                  <span style={{ color: '#cbd5e1' }}>
+                    FRAME: <strong>#{cameraStatuses[fullscreenCam.camId]?.last_frame_idx || 0} (@{cameraStatuses[fullscreenCam.camId]?.video_time_sec || 0}s)</strong>
+                  </span>
+                  {cameraStatuses[fullscreenCam.camId]?.detection_age_sec !== undefined && cameraStatuses[fullscreenCam.camId]?.detection_age_sec !== null && (
+                    <>
+                      <span style={{ color: '#94a3b8' }}>|</span>
+                      <span style={{ color: cameraStatuses[fullscreenCam.camId]?.detection_age_sec > 6 ? '#f59e0b' : '#10b981' }}>
+                        AGE: <strong>{Math.round(cameraStatuses[fullscreenCam.camId]?.detection_age_sec)}s</strong>
+                      </span>
+                    </>
+                  )}
+                  <span style={{ color: '#94a3b8' }}>|</span>
+                  <span style={{ color: '#cbd5e1' }}>
+                    RECORDED REPLAY
+                  </span>
                 </div>
 
-                <div style={{ fontSize: '0.7rem', color: '#64748b', fontFamily: 'monospace' }}>
-                  PRESS ESC TO CLOSE & RETURN HOME
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <button
+                    onClick={() => handleProcessBatch(fullscreenCam.camId)}
+                    disabled={processingBatch[fullscreenCam.camId]}
+                    style={{
+                      backgroundColor: processingBatch[fullscreenCam.camId] ? '#334155' : '#0284c7',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '4px',
+                      padding: '0.3rem 0.65rem',
+                      fontSize: '0.7rem',
+                      fontWeight: 800,
+                      fontFamily: 'monospace',
+                      cursor: processingBatch[fullscreenCam.camId] ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    {processingBatch[fullscreenCam.camId] ? 'RUNNING YOLO...' : 'PROCESS BATCH (15f)'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (cameraStatuses[fullscreenCam.camId]?.is_running) {
+                        handleStopFeed(fullscreenCam.camId);
+                      } else {
+                        handleStartFeed(fullscreenCam.camId);
+                      }
+                    }}
+                    style={{
+                      backgroundColor: cameraStatuses[fullscreenCam.camId]?.is_running ? '#7f1d1d' : '#064e3b',
+                      color: cameraStatuses[fullscreenCam.camId]?.is_running ? '#fca5a5' : '#6ee7b7',
+                      border: `1px solid ${cameraStatuses[fullscreenCam.camId]?.is_running ? '#ef4444' : '#10b981'}`,
+                      borderRadius: '4px',
+                      padding: '0.3rem 0.65rem',
+                      fontSize: '0.7rem',
+                      fontWeight: 800,
+                      fontFamily: 'monospace',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {cameraStatuses[fullscreenCam.camId]?.is_running ? 'STOP WORKER' : 'START WORKER'}
+                  </button>
+                  <div style={{ fontSize: '0.7rem', color: '#64748b', fontFamily: 'monospace' }}>
+                    ESC TO CLOSE
+                  </div>
                 </div>
               </div>
             </div>

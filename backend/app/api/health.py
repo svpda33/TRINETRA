@@ -15,11 +15,12 @@ async def health_check():
         "app": settings.PROJECT_NAME,
         "version": settings.PROJECT_VERSION,
         "environment": settings.ENVIRONMENT,
-        "step": "NexTrAI City-Wide ANPR & Trajectory Tracking Engine (BEL SIH PS 26127)",
+        "platform": "NexTrAI Urban Traffic Intelligence & Management Platform",
+        "category": "Intelligent Transportation Systems (ITS)",
         "services": {
             "api_server": "running",
             "safety_validator": "ready",
-            "ai_coordinator": "configured" if settings.FEATHERLESS_API_KEY else "standby",
+            "gemini_service": "configured" if settings.GEMINI_API_KEY else "standby",
             "anpr_engine": "ready",
             "gis_engine": "ready"
         }

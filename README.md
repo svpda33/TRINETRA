@@ -1,22 +1,23 @@
-# NexTrAI — City-Wide AI Engine for Multi-Camera ANPR Trajectory Tracking and Urban Traffic Analytics
+# NexTrAI — Urban Traffic Intelligence & Management Platform
 
-**Smart India Hackathon (SIH) — Problem Statement 26127**  
-**Organization:** Bharat Electronics Limited (BEL) / Ministry of Electronics and Information Technology (MeitY)  
-**System Designation:** NexTrAI Enterprise ITMS Command Engine (Evolved from Trinetra)
+**Project Category:** Intelligent Transportation Systems (ITS)  
+**System Designation:** NexTrAI Enterprise ITMS Command Engine  
+**Deployment Corridor:** Hyderabad Smart IT Corridor (Cyber Towers — Mindspace — Bio-Diversity — Gachibowli)
 
 ---
 
 ## 📌 Executive Summary
 
-**NexTrAI** is a city-scale, intelligent edge-and-central traffic intelligence system that fuses **Multi-Camera Automatic Number Plate Recognition (ANPR)**, **Deep Learning Computer Vision (YOLOv8)**, **Spatio-Temporal Trajectory Reconstruction**, **Geographic Information Systems (GIS)**, and **Deterministic Traffic Signal Safety Orchestration** into a unified Smart City command center.
+**NexTrAI** is an independent, city-scale intelligent edge-and-central traffic management platform. It fuses **Multi-Camera Automatic Number Plate Recognition (ANPR)**, **Deep Learning Computer Vision (YOLOv8)**, **Spatio-Temporal Trajectory Reconstruction**, **Geographic Information Systems (GIS)**, **Google Gemini AI Traffic Intelligence**, and **Deterministic Traffic Signal Safety Orchestration** into a unified urban command-center platform.
 
-Originally built on the battle-tested **Trinetra** emergency traffic signal preemption network, **NexTrAI** evolves the platform to address **SIH Problem Statement 26127** while strictly preserving all mission-critical safety guarantees:
+Key Capabilities:
 1. **Multi-Camera ANPR & Re-Identification:** Real-time license plate detection and OCR using **YOLOv8** vehicle localization, **EasyOCR** text extraction, and strict Indian **MoRTH HSRP (High-Security Registration Plate)** and **BH (Bharat Series)** regex validation.
-2. **Spatio-Temporal Trajectory Reconstruction:** Multi-junction vehicle journey mapping, point-to-point average speed calculation, travel time analysis, and suspicious movement flags.
-3. **Automated Watchlist & Containment Grid:** Instant O(1) memory lookup for stolen, flagged, and criminal vehicles with automated containment signal strategies verified through the safety layer.
-4. **Interactive GIS Command Map:** Full geo-referenced visualization powered by **Leaflet.js** on OpenStreetMap tiles calibrated for the **Hyderabad Smart IT Corridor** ($I_1$: Cyber Towers $\leftrightarrow$ $I_2$: Mindspace $\leftrightarrow$ $I_3$: Bio-Diversity $\leftrightarrow$ $I_4$: Gachibowli).
+2. **Spatio-Temporal Trajectory Reconstruction:** Multi-junction vehicle journey mapping, point-to-point average speed calculation, travel time analysis, and anomalous movement flags.
+3. **Automated Watchlist & Containment Grid:** Instant O(1) memory lookup for stolen, flagged, and wanted vehicles with automated containment signal strategies verified through the safety layer.
+4. **Interactive GIS Traffic Command Map:** Full geo-referenced visualization powered by **Leaflet** on OpenStreetMap/CartoDB tiles calibrated for the **Hyderabad Smart IT Corridor** (I1: Cyber Towers $\leftrightarrow$ I2: Mindspace $\leftrightarrow$ I3: Bio-Diversity $\leftrightarrow$ I4: Gachibowli). Features layer controls, one-click bounds fitting, camera provenance disclosure, and live phase countdown meters.
 5. **Urban Traffic Analytics:** Automated Modal Split classification, Turning Movement Counts (TMC), Origin-Destination (O-D) flow matrices, and real-time corridor bottleneck identification.
-6. **Deterministic Safety Validator:** Zero-compromise hardware safety rules (12-movement conflict matrix, minimum 4s yellow + 2s all-red clearance, 8/8 passing automated safety test suite).
+6. **Deterministic Safety Validator:** Zero-compromise safety rules (12-movement conflict matrix, minimum 10s green, 3-4s yellow + 2s all-red clearance, 8/8 passing automated safety test suite according to IRC:67 guidelines).
+7. **Google Gemini AI Traffic Intelligence:** Real-time narrative operational briefings, signal decision explanations, congestion insights, and interactive operator co-pilot chat powered by Google GenAI. All AI outputs remain strictly advisory with physical signals protected by deterministic safety layers.
 
 ---
 
@@ -25,10 +26,10 @@ Originally built on the battle-tested **Trinetra** emergency traffic signal pree
 ```mermaid
 graph TD
     subgraph Edge & Camera Sensing Layer
-        C1[Camera I1: Cyber Towers] --> CV[YOLOv8 Vehicle Detection & Centroid Tracker]
-        C2[Camera I2: Mindspace] --> CV
-        C3[Camera I3: Bio-Diversity] --> CV
-        C4[Camera I4: Gachibowli] --> CV
+        C1["Camera I1: Cyber Towers (4 Approaches)"] --> CV[YOLOv8 Vehicle Detection & Spatial Tracker]
+        C2["Camera I2: Mindspace (4 Approaches)"] --> CV
+        C3["Camera I3: Bio-Diversity"] --> CV
+        C4["Camera I4: Gachibowli"] --> CV
         CV --> OCR[EasyOCR + Image Preprocessing CLAHE / Bilateral]
         OCR --> VAL[MoRTH HSRP & BH Regex Validator]
     end
@@ -41,9 +42,15 @@ graph TD
     end
 
     subgraph Signal Orchestration & Safety Core
-        WL --> AI[Featherless AI / Corridor Coordinator]
-        AI --> DSV[Deterministic Safety Validator\n12-Movement Conflict Matrix]
-        DSV --> SIG[Traffic Signal Controllers / Simulator]
+        WL --> ADAPT[Adaptive Signal Controller\nReal-Time Queue Balancing]
+        ADAPT --> EM[6-State Emergency Preemption FSM]
+        EM --> DSV[Deterministic Safety Validator\nIRC:67 12-Movement Conflict Matrix]
+        DSV --> SIG[Traffic Signal Controllers]
+    end
+
+    subgraph AI Advisory & Co-Pilot Layer
+        DB --> GEMINI[Google Gemini AI Engine\ngemini-3.5-flash]
+        GEMINI -.->|Advisory Summaries & Explanations| UI
     end
 
     subgraph ITMS Command Center Dashboard
@@ -57,236 +64,85 @@ graph TD
 
 ---
 
-## 🛡️ Preserved Trinetra Foundations
+## 🛡️ Core Safety Foundations
 
-NexTrAI retains 100% of the proven safety and visualization mechanisms developed in the original Trinetra prototype:
+NexTrAI adheres to the principle: **The AI is an advisory co-pilot; safety is non-negotiable and deterministic.**
 
-- **Deterministic Safety Validator:** An uncompromising hard-rule validator that sits between AI suggestions and physical signal controllers. It enforces minimum clearance times, pedestrian safety minimums, and strict directional exclusivity using a 12-movement conflict matrix ($N, S, E, W \times \text{Left, Through, Right}$).
-- **8-Test Safety Verification Suite:** Automated safety test suite validating all-red clearances, conflict detection, pedestrian extensions, and emergency preemption.
-- **Left-Hand Traffic (LHT) SVG Visualizers:** Native Indian road geometry with realistic 4-approach phase indicators and pedestrian crosswalk badges.
-- **Featherless LLM Integration:** Context-aware multi-intersection green wave reasoning using open-weight models (Llama 3.1 70B Instruct).
-- **WebSocket Telemetry:** Sub-100ms real-time event broadcasting to all connected ITMS operator consoles.
-
----
-
-## 🚀 Key Modules & PS 26127 Features
-
-### 1. Computer Vision & Indian ANPR Engine
-- **Vehicle Detection:** Ultralytics YOLOv8 nano (`yolov8n.pt`) classifies vehicles into Cars, Motorcycles, Buses, and Trucks.
-- **Intra-Camera Tracking:** Centroid tracker assigns persistent IDs to vehicles moving through the camera's field of view.
-- **OCR Engine:** EasyOCR extracts alphanumeric plate sequences from high-contrast vehicle crops.
-- **MoRTH HSRP & Bharat (BH) Plate Validation:**
-  - Standard State HSRP: `^[A-Z]{2}[0-9]{1,2}[A-Z]{1,3}[0-9]{4}$` (e.g., `TS09EA1234`, `DL01AB9999`)
-  - Bharat Series: `^[0-9]{2}BH[0-9]{4}[A-Z]{1,2}$` (e.g., `22BH1234AA`)
-  - Heuristic Character Ambiguity Corrector: Resolves common OCR confusions (`O` $\leftrightarrow$ `0`, `I` $\leftrightarrow$ `1`, `Z` $\leftrightarrow$ `2`, `B` $\leftrightarrow$ `8`) based on position within the Indian plate format.
-
-### 2. Spatio-Temporal Multi-Camera Trajectory Engine
-- Tracks unique vehicle license plates across distributed camera nodes ($I_1 \dots I_4$).
-- Reconstructs chronological hop sequences with timestamps, camera IDs, and junction names.
-- Computes point-to-point road driving distances, segment transit times, and average velocities ($\text{km/h}$).
-- Automatically flags over-speeding ($>80\text{ km/h}$) and anomalous transit times.
-
-### 3. Interactive GIS Map (Leaflet.js)
-- Calibrated OpenStreetMap GIS view centered on the **Hyderabad Smart IT Corridor**:
-  - **$I_1$:** Cyber Towers Junction (`17.4504, 78.3808`)
-  - **$I_2$:** Hitec City / Mindspace Junction (`17.4428, 78.3813`) — 850m
-  - **$I_3$:** Bio-Diversity Junction (`17.4325, 78.3728`) — 1,400m
-  - **$I_4$:** Gachibowli Junction (`17.4401, 78.3489`) — 2,600m
-- Custom interactive markers for cameras, junctions, and live trajectory polyline overlays with directional travel animations.
-
-### 4. Automated Watchlist & Containment Grid
-- Real-time $O(1)$ memory lookup against stolen, wanted, and VIP vehicles.
-- Generates high-priority containment alerts upon detection at any corridor camera.
-- Interlocks with the signal controller to coordinate downstream red-light containment grids without violating safety clearance rules.
-
-### 5. Urban Traffic Analytics Engine
-- **Modal Split Analysis:** Real-time breakdown of urban vehicle distribution (Two-Wheelers, Four-Wheelers, Buses, Heavy Commercial Vehicles).
-- **Turning Movement Counts (TMC):** Approach-by-approach throughput tracking ($N \rightarrow S, N \rightarrow E, N \rightarrow W$, etc.).
-- **Origin-Destination (O-D) Matrix:** Corridor flow estimation between entrance and exit nodes.
-- **Bottleneck Identification:** Real-time level-of-service (LOS) and congestion hotspot alerts based on queue density and average speeds.
+- **Rule 1: Exclusive Approach & Geometrical Conflict Gate**  
+  Opposing conflict movements (e.g., North-to-South vs East-to-West) can **never** receive concurrent green displays under any circumstances.
+- **Rule 2: Clearance Phase Enforcement**  
+  Every signal transition requires a minimum of 3-4 seconds of Yellow clearance followed by 2 seconds of All-Red clearance before opening opposing approaches.
+- **Rule 3: Deterministic Preemption FSM**  
+  Emergency corridors transition through a formal 6-state finite state machine (`IDLE` $\rightarrow$ `DETECTION` $\rightarrow$ `WAITING_CLEARANCE` $\rightarrow$ `ACTIVE` $\rightarrow$ `HOLD` $\rightarrow$ `RECOVERY`), ensuring zero abrupt transitions or hazardous clearance cancellations.
+- **Rule 4: Sensor Loss Graceful Degradation**  
+  If camera feeds or telemetry packets drop, controllers never assume zero traffic; they enter safe rotation mode based on wait timers.
 
 ---
 
-## 📊 Empirical Benchmarks & Evaluation
-
-In compliance with the project's strict engineering standards, NexTrAI does not rely on synthetic, unsubstantiated marketing claims. All performance metrics are empirically evaluated:
-
-```bash
-# Run the empirical ANPR & HSRP benchmark suite
-curl http://localhost:8000/api/anpr/benchmark
-```
-
-| Evaluation Metric | Measured Result | Benchmark Standard |
-| :--- | :--- | :--- |
-| **HSRP Standard Regex Accuracy** | **94.5%** | MoRTH Standard Formats (10 Indian States) |
-| **Bharat (BH) Series Format Support** | **100.0%** | Gazette of India GSR 594(E) Standard |
-| **Character Ambiguity Correction** | **88.2%** | State-code & numerical segment corrections |
-| **Deterministic Safety Validator** | **8 / 8 Passing (100%)** | Zero-incident hardware clearance test suite |
-| **Spatial Distance Error** | **< 1.5%** | Calibrated against Hyderabad GIS survey data |
-| **Watchlist Lookup Latency** | **< 0.1 ms** | In-memory hash set with write-through SQLite |
-
----
-
-## 🔌 API Reference
-
-### Health & Topology
-- `GET /api/health` — Returns system status, loaded CV/OCR engines, active database, and memory stats.
-- `GET /api/gis/topology` — GeoJSON and spatial coordinates for all Hyderabad junctions and camera nodes.
-- `GET /api/intersections` — Real-time signal states, phases, and queue densities for $I_1 \dots I_4$.
-
-### ANPR & Sightings
-- `GET /api/anpr/detections` — Recent vehicle sightings with plate, confidence, vehicle type, and snapshot URI.
-- `POST /api/anpr/simulate-sighting` — Ingest camera sightings for testing and verification.
-- `GET /api/anpr/benchmark` — Run the automated MoRTH HSRP empirical evaluation suite.
-
-### Trajectory Reconstruction
-- `GET /api/trajectories/search?plate_number=TS09EA1234` — Full spatio-temporal trajectory, hops, speeds, and timestamps.
-- `GET /api/trajectories/recent` — List of recently observed active vehicles across the corridor.
-
-### Watchlist & Security
-- `GET /api/watchlist` — List all registered watchlist targets with severity levels.
-- `POST /api/watchlist` — Register a new stolen/wanted plate.
-- `GET /api/watchlist/alerts` — Active containment alerts generated by ANPR camera hits.
-- `POST /api/watchlist/alerts/{id}/acknowledge` — Acknowledge and resolve an active security alert.
-
-### Urban Analytics
-- `GET /api/analytics/macro-flow` — Total volume, average corridor speed, modal split, TMC counts, and bottlenecks.
-- `GET /api/analytics/od-matrix` — Matrix of trip volumes from origin junctions to destination junctions.
-
----
-
-## 💻 Quick Start & Installation
+## 🚀 Quick Start Guide
 
 ### Prerequisites
-- **Python 3.10 to 3.14**
-- **Node.js 18+ & npm**
-- **Git**
+- **Python:** 3.10+ (tested on Python 3.11, 3.12, 3.14)
+- **Node.js:** 18+ and npm
+- **Google Gemini API Key:** (optional, for Gemini AI Traffic Assistant)
 
-### 1. Clone & Set Up Environment
-
+### 1. Backend Setup
 ```bash
-git clone https://github.com/svpda33/TRINETRA.git NexTrAI
+# Clone the repository
+git clone https://github.com/your-org/NexTrAI.git
 cd NexTrAI
-```
 
-### 2. Backend Setup
-
-```bash
-# Navigate to backend directory
-cd backend
-
-# (Optional) Create a virtual environment
+# Set up virtual environment
 python -m venv venv
-# Windows:
-venv\Scripts\activate
-# Linux/macOS:
-source venv/bin/activate
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install dependencies (FastAPI, PyTorch, YOLOv8, EasyOCR, SQLAlchemy, Shapely)
+# Install dependencies
 pip install -r requirements.txt
 
-# Run the FastAPI server
-uvicorn app.main:app --reload --port 8000
+# Configure environment
+cp .env.example .env
+# Edit .env and insert your GEMINI_API_KEY (optional)
+
+# Start backend server
+python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --reload
 ```
 
-Verify backend health at: [http://localhost:8000/api/health](http://localhost:8000/api/health)  
-Interactive API Docs (Swagger): [http://localhost:8000/docs](http://localhost:8000/docs)
-
-### 3. Frontend Setup
-
+### 2. Frontend Setup
 ```bash
-# Navigate to frontend directory
-cd ../frontend
-
-# Install React dependencies (including Leaflet.js)
+cd frontend
 npm install
-
-# Run Vite dev server
 npm run dev
 ```
-
-Open your browser to: [http://localhost:5173](http://localhost:5173)
+Open `http://127.0.0.1:5173/` in your browser.
 
 ---
 
-## 🧪 Running Automated Tests
+## 🧪 Testing & Verification
 
-Run the deterministic safety validator test suite to verify zero-conflict guarantees:
+Run the complete automated test suite (60 tests covering CV pipeline, spatial geometry, adaptive signal control, emergency preemption, corridor coordination, Gemini AI integration, and GIS map telemetry):
 
 ```bash
-cd backend
-python -m pytest tests/ -v
-# Or run direct verification script:
-python -c "from app.services.safety_validator import DeterministicSafetyValidator; print('Safety rules verified successfully')"
+# Run all backend tests with pytest
+python -m pytest backend/tests/ -o pythonpath=backend -v
+
+# Run frontend production build check
+cd frontend
+npm run build
 ```
 
 ---
 
-## 📂 Project Directory Structure
+## ⚠️ Current System Boundaries & Disclosures
 
-```
-NexTrAI/
-├── README.md                           # System architecture & SIH PS 26127 documentation
-├── backend/
-│   ├── requirements.txt                # Python dependencies (torch, ultralytics, easyocr, etc.)
-│   ├── data/
-│   │   ├── nextrai.db                  # SQLite database (junctions, cameras, detections, alerts)
-│   │   └── snapshots/                  # Vehicle detection image crops
-│   └── app/
-│       ├── main.py                     # FastAPI application entrypoint & router registry
-│       ├── config.py                   # System configuration & priority hierarchy
-│       ├── db.py                       # SQLAlchemy engine & session factory
-│       ├── api/                        # REST API endpoints
-│       │   ├── health.py               # Health check
-│       │   ├── anpr.py                 # ANPR detections & empirical benchmark
-│       │   ├── trajectories.py         # Multi-camera spatio-temporal trajectories
-│       │   ├── watchlist.py            # Watchlist CRUD & security alerts
-│       │   ├── gis.py                  # Hyderabad corridor GIS topology
-│       │   ├── analytics.py            # Modal split, TMC & O-D matrix
-│       │   ├── intersections.py        # 4-junction signal state endpoints
-│       │   └── priority.py             # Event priority hierarchy
-│       ├── models/                     # Data schemas & ORM entities
-│       │   ├── db_models.py            # SQLAlchemy database tables
-│       │   ├── intersection.py         # Pydantic schemas for signals & queues
-│       │   └── priority.py             # Priority hierarchy definitions
-│       └── services/                   # Core intelligence engines
-│           ├── cv_engine.py            # YOLOv8 vehicle detection & centroid tracking
-│           ├── anpr_engine.py          # EasyOCR reader & CLAHE preprocessing
-│           ├── plate_validator.py      # MoRTH HSRP regex & character ambiguity corrector
-│           ├── gis_engine.py           # Spatial coordinates & calibrated corridor distances
-│           ├── trajectory_engine.py    # Multi-camera path reconstruction & speed tracking
-│           ├── watchlist_service.py    # O(1) hash cache & containment alert dispatcher
-│           ├── analytics_engine.py     # Urban traffic flow & bottleneck calculator
-│           ├── safety_validator.py     # 12-movement deterministic conflict validator
-│           ├── ai_coordinator.py       # Featherless LLM green-wave reasoner
-│           └── simulation_engine.py    # Real-time corridor telemetry broadcaster
-└── frontend/
-    ├── package.json
-    ├── vite.config.js
-    ├── index.html
-    └── src/
-        ├── App.jsx                     # Master ITMS command center layout
-        ├── main.jsx
-        ├── index.css                   # ITMS Command Center dark styling
-        └── components/
-            ├── Header.jsx              # Status bar with active alerts ticker
-            ├── Navigation.jsx          # Multi-tab view selector
-            ├── GISTrajectoryMap.jsx    # Interactive Leaflet GIS corridor map
-            ├── PlateTrajectorySearch.jsx # Vehicle search & hop timeline viewer
-            ├── ANPRSightingsFeed.jsx   # Live OCR stream & MoRTH benchmark panel
-            ├── WatchlistManager.jsx    # Target registry & alert management
-            ├── TrafficAnalyticsPanel.jsx # Modal split, TMC, O-D matrix & bottleneck alert
-            ├── NetworkOverview.jsx     # High-level ITMS KPI cards
-            ├── TrafficNetworkMap.jsx   # Preserved schematic topology view
-            ├── SignalStatus.jsx        # Preserved 12-movement LHT SVG visualizers
-            └── SystemInformation.jsx   # Hardware & software runtime diagnostics
-```
+1. **CCTV Data Provenance**: Video inputs are sourced from pre-recorded MP4 clips (`RECORDED_CCTV_REPLAY`) sampled at controlled frame intervals ($k=4$). Telemetry status reflects active video stream processing (`ACTIVE_REPLAY_STREAM`). The platform does not claim unverified live municipal CCTV hardware integration.
+2. **Camera Coordinate Precision**: Camera coordinates on the Hyderabad GIS map represent calibrated directional approach offsets ($\sim 60\text{m} - 75\text{m}$ along approach lines from junction centroids) with `location_confidence: APPROXIMATE_APPROACH_OFFSET` and `gps_verified: False`.
+3. **Physical Signal Isolation**: NexTrAI is an ITMS software platform. For safety, signal transitions are governed by deterministic Webster-delay logic and validated by the immutable 12-movement conflict matrix in `DeterministicSafetyValidator`. Google Gemini operates strictly as an advisory diagnostic co-pilot with zero actuation authority.
+4. **License Plate & Detection Heuristics**: Auto-rickshaw classification uses bounding box aspect-ratio heuristics. EasyOCR runs on local CPU/GPU for MoRTH-standard plates; extreme angles, motion blur, and non-standard stylized fonts may reduce character accuracy.
+5. **Corridor Segments**: The active I1–I2 corridor ($\sim 850\text{m}$) is fully monitored with dual-camera coverage. The downstream segments to Bio-Diversity (I3, $\sim 1400\text{m}$) and Gachibowli (I4, $\sim 2600\text{m}$) represent planned corridor expansion topology.
 
 ---
 
-## 📜 License & Acknowledgments
+## 📜 License & Disclosures
 
-- **Developed for:** Smart India Hackathon (SIH) — Problem Statement 26127
-- **Sponsoring Body:** Bharat Electronics Limited (BEL) & Ministry of Electronics and Information Technology (MeitY)
-- **Baseline Foundation:** Trinetra / NexGenX Emergency Traffic Signal Coordination Network
-- **License:** Open Source under the MIT License.
+- **License Status:** The project code is prepared for open-source distribution. Formal license selection (e.g., Apache 2.0 or MIT) is pending final maintainer authorization prior to public repository release.
+- **Hardware Integration:** Production municipal deployment requires certified NEMA TS2, Type 170, or Type 2070 traffic signal controllers interfacing via NTCIP 1202 standards.

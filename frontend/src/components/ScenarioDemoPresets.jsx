@@ -1,11 +1,11 @@
 import React from 'react';
 
-export default function HackathonDemoPresets({ onTriggerEvent, onClearEvents }) {
+export default function ScenarioDemoPresets({ onTriggerEvent, onClearEvents }) {
   return (
     <div className="gov-section">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.4rem' }}>
         <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0b2545', textTransform: 'uppercase' }}>
-          SCENARIO SIMULATION PRESETS (1-CLICK DEMO)
+          SCENARIO SIMULATION PRESETS (1-CLICK DISPATCH)
         </span>
         <span style={{ fontSize: '0.7rem', color: '#64748b', fontFamily: 'monospace' }}>
           PRIORITY ORDER: P1 &gt; P2 &gt; P3 &gt; P4 &gt; P5

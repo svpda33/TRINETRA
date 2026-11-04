@@ -24,7 +24,7 @@ export default function NetworkOverview({ activeIntersectionsCount = 4, activeEv
           <span>SYSTEM OVERVIEW & EXECUTIVE METRICS</span>
         </div>
         <span style={{ fontSize: '0.725rem', color: '#64748b', fontFamily: 'monospace' }}>
-          REF: HYDERABAD SMART IT CORRIDOR (BEL SIH PS 26127)
+          CORRIDOR: HYDERABAD SMART IT ARTERIAL (CYBER TOWERS ↔ GACHIBOWLI)
         </span>
       </div>
 

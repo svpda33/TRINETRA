@@ -29,13 +29,13 @@ export default function IntersectionTrafficVisualizer({ intersection }) {
   const e_n = getMovementColor('E_TO_N', 'E → N', det.e_to_n); // Right turn in LHT
 
   const w_e = getMovementColor('W_TO_E', 'W → E', det.w_to_e);
-  const w_s = getMovementColor('W_TO_S', 'W → S', det.w_s); // Right turn in LHT
+  const w_s = getMovementColor('W_TO_S', 'W → S', det.w_to_s); // Right turn in LHT
 
-  // CRITICAL REQUIREMENT (LHT): All LEFT-TURN Arrows (N→E, S→W, E→S, W→N) MUST ALWAYS REMAIN GREEN!
-  const n_e = 'GREEN'; // Left Turn in LHT (N → E)
-  const s_w = 'GREEN'; // Left Turn in LHT (S → W)
-  const e_s = 'GREEN'; // Left Turn in LHT (E → S)
-  const w_n = 'GREEN'; // Left Turn in LHT (W → N)
+  // Left-turn movements calculated dynamically from signal state (avoids conflicting greens)
+  const n_e = getMovementColor('N_TO_E', 'N → E', det.n_to_e);
+  const s_w = getMovementColor('S_TO_W', 'S → W', det.s_to_w);
+  const e_s = getMovementColor('E_TO_S', 'E → S', det.e_to_s);
+  const w_n = getMovementColor('W_TO_N', 'W → N', det.w_to_n);
 
   const ped = activeIds.includes('PEDESTRIAN_WALK') || activeLabels.includes('PEDESTRIAN_WALK') || det.pedestrian === 'GREEN';
 
@@ -56,7 +56,8 @@ export default function IntersectionTrafficVisualizer({ intersection }) {
   const isClearance = intersection?.is_clearance_active || (
     !isYellowTransition &&
     n_s !== 'GREEN' && s_n !== 'GREEN' && e_w !== 'GREEN' && w_e !== 'GREEN' &&
-    n_w !== 'GREEN' && s_e !== 'GREEN' && e_n !== 'GREEN' && w_s !== 'GREEN' && !ped
+    n_w !== 'GREEN' && s_e !== 'GREEN' && e_n !== 'GREEN' && w_s !== 'GREEN' &&
+    n_e !== 'GREEN' && s_w !== 'GREEN' && e_s !== 'GREEN' && w_n !== 'GREEN' && !ped
   );
 
   return (

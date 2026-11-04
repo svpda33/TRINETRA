@@ -11,6 +11,7 @@ from app.services.cv_engine import cv_engine
 from app.services.anpr_engine import anpr_engine
 from app.services.analytics_engine import analytics_engine
 from app.services.gis_engine import gis_engine
+from app.services.spatial_geometry_service import spatial_geometry_service
 
 logger = logging.getLogger("nextrai.video")
 
@@ -20,16 +21,24 @@ CCTV_VIDEO_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "
 class CameraStreamWorker:
     """Manages video capture, frame sampling, and pipeline execution for a single camera."""
 
-    def __init__(self, camera_id: str, source_path: str, sample_interval: int = 5):
+    def __init__(self, camera_id: str, source_path: str, sample_interval: int = 4):
         self.camera_id = camera_id
         self.source_path = source_path
-        self.sample_interval = sample_interval  # Process 1 frame every N frames
+        self.sample_interval = sample_interval  # Controlled frame-skipping k=4
         self.is_running = False
         self.total_frames_read = 0
         self.total_frames_processed = 0
         self.total_vehicles_detected = 0
         self.last_frame: Optional[Any] = None
+        self.last_frame_idx: int = 0
+        self.fps: float = 30.0
+        self.last_processed_ts: Optional[float] = None
         self.last_detections: List[Dict[str, Any]] = []
+        self.last_spatial_telem: Optional[Dict[str, Any]] = None
+        self.last_update_str: Optional[str] = None
+        self.inference_latencies: List[float] = []
+        self.mean_inference_latency_ms: float = 0.0
+        self.inference_fps: float = 0.0
         self._thread: Optional[threading.Thread] = None
 
     def start(self, on_event_callback: Optional[Callable] = None):
@@ -47,8 +56,9 @@ class CameraStreamWorker:
         logger.info(f"Started video capture worker for {self.camera_id} from {self.source_path}")
 
     def stop(self):
-        """Stops capture loop."""
+        """Stops capture loop and clears active detections."""
         self.is_running = False
+        self.last_detections = []
         if self._thread and self._thread.is_alive():
             self._thread.join(timeout=1.0)
         logger.info(f"Stopped worker for {self.camera_id}")
@@ -60,6 +70,9 @@ class CameraStreamWorker:
             logger.error(f"Failed to open video source for {self.camera_id}: {self.source_path}")
             self.is_running = False
             return
+
+        fps_val = cap.get(cv2.CAP_PROP_FPS)
+        self.fps = fps_val if fps_val and fps_val > 0 else 30.0
 
         frame_idx = 0
         while self.is_running:
@@ -79,15 +92,35 @@ class CameraStreamWorker:
 
             self.total_frames_processed += 1
             self.last_frame = frame
+            self.last_frame_idx = frame_idx
+            self.last_processed_ts = time.time()
+            self.last_update_str = time.strftime("%H:%M:%S IST")
 
             # 1. Real YOLOv8 vehicle detection + IoU Multi-Object Tracking
+            t0 = time.time()
             tracked_vehicles, class_counts = cv_engine.detect_and_track(
                 camera_id=self.camera_id,
                 frame=frame,
                 conf_threshold=0.30
             )
+            inf_ms = (time.time() - t0) * 1000.0
+            self.inference_latencies.append(inf_ms)
+            if len(self.inference_latencies) > 30:
+                self.inference_latencies.pop(0)
+            self.mean_inference_latency_ms = round(sum(self.inference_latencies) / len(self.inference_latencies), 1)
+            self.inference_fps = round(1000.0 / max(1.0, self.mean_inference_latency_ms), 1)
+
             self.last_detections = tracked_vehicles
             self.total_vehicles_detected += len(tracked_vehicles)
+
+            # 1.5 Process spatial geometry (approach lanes, queue containment, stop-line crossings)
+            fh, fw = frame.shape[:2]
+            self.last_spatial_telem = spatial_geometry_service.process_frame_spatial_telemetry(
+                camera_id=self.camera_id,
+                tracked_vehicles=tracked_vehicles,
+                frame_w=fw,
+                frame_h=fh
+            )
 
             # 2. Update real-time traffic flow counters
             intersection_id = self.camera_id[4:6] if len(self.camera_id) >= 6 else "I1"
@@ -128,6 +161,7 @@ class CameraStreamWorker:
                     "frame_index": frame_idx,
                     "vehicles": tracked_vehicles,
                     "counts": class_counts,
+                    "spatial": self.last_spatial_telem,
                     "timestamp": time.time()
                 })
 
@@ -156,6 +190,7 @@ class VideoIngestionService:
     def __init__(self):
         self.workers: Dict[str, CameraStreamWorker] = {}
         self._event_listeners: List[Callable] = []
+        self.latest_camera_detections: Dict[str, Dict[str, Any]] = {}
 
     def register_event_listener(self, listener: Callable):
         """Registers a callback for live video events."""
@@ -208,36 +243,71 @@ class VideoIngestionService:
         }
 
     def stop_camera(self, camera_id: str) -> Dict[str, Any]:
-        """Stops video capture for a camera."""
+        """Stops video capture for a camera and immediately clears active detections."""
         if camera_id in self.workers:
             self.workers[camera_id].stop()
             del self.workers[camera_id]
-            return {"status": "stopped", "camera_id": camera_id}
-        return {"status": "not_found", "camera_id": camera_id}
+        if camera_id in self.latest_camera_detections:
+            self.latest_camera_detections[camera_id]["active_tracks"] = []
+        return {"status": "stopped", "camera_id": camera_id}
 
     def get_camera_status(self, camera_id: str) -> Dict[str, Any]:
-        """Returns live statistics for a camera worker."""
+        """Returns live statistics for a camera worker with synchronization metadata."""
+        now = time.time()
         if camera_id in self.workers:
             w = self.workers[camera_id]
+            processed_ts = getattr(w, "last_processed_ts", None)
+            age_sec = round(now - processed_ts, 1) if processed_ts else None
+            fps_val = getattr(w, "fps", 30.0)
+            frame_idx = getattr(w, "last_frame_idx", 0)
             return {
                 "camera_id": camera_id,
                 "is_running": w.is_running,
                 "source": w.source_path,
+                "source_type": "RECORDED_CCTV_REPLAY",
                 "frames_read": w.total_frames_read,
                 "frames_processed": w.total_frames_processed,
+                "last_frame_idx": frame_idx,
+                "video_fps": round(fps_val, 1),
+                "video_time_sec": round(frame_idx / max(1.0, fps_val), 2),
+                "processed_timestamp": processed_ts,
+                "detection_age_sec": age_sec,
+                "is_expired": False,
                 "vehicles_detected": w.total_vehicles_detected,
                 "active_tracks_count": len(w.last_detections),
-                "active_tracks": w.last_detections[:10]
+                "active_tracks": w.last_detections,
+                "spatial": getattr(w, "last_spatial_telem", None),
+                "last_update": getattr(w, "last_update_str", None)
             }
+        cached = self.latest_camera_detections.get(camera_id, {})
+        processed_ts = cached.get("processed_timestamp")
+        age_sec = round(now - processed_ts, 1) if processed_ts else None
+        
+        # Policy: If worker is not running, and detection age exceeds 10.0 seconds, expire cached active_tracks
+        active_tracks = cached.get("active_tracks", [])
+        is_expired = False
+        if age_sec is not None and age_sec > 10.0:
+            is_expired = True
+            active_tracks = []
+
         return {
             "camera_id": camera_id,
             "is_running": False,
             "source": self.resolve_source(camera_id),
-            "frames_read": 0,
-            "frames_processed": 0,
-            "vehicles_detected": 0,
-            "active_tracks_count": 0,
-            "active_tracks": []
+            "source_type": "RECORDED_CCTV_REPLAY",
+            "frames_read": cached.get("frames_read", 0),
+            "frames_processed": cached.get("frames_processed", 0),
+            "last_frame_idx": cached.get("last_frame_idx", 0),
+            "video_fps": 30.0,
+            "video_time_sec": cached.get("video_time_sec", 0.0),
+            "processed_timestamp": processed_ts,
+            "detection_age_sec": age_sec,
+            "is_expired": is_expired,
+            "vehicles_detected": cached.get("vehicles_detected", 0),
+            "active_tracks_count": len(active_tracks),
+            "active_tracks": active_tracks,
+            "spatial": cached.get("spatial", None),
+            "last_update": cached.get("last_update", None)
         }
 
     def process_video_batch(self, camera_id: str, max_frames: int = 30) -> Dict[str, Any]:
@@ -253,7 +323,7 @@ class VideoIngestionService:
         frames_processed = 0
         detections_found = 0
         plates_spotted = 0
-        tracked_summary = []
+        last_frame_tracks = []
 
         while frames_processed < max_frames:
             ret, frame = cap.read()
@@ -262,19 +332,14 @@ class VideoIngestionService:
 
             frames_processed += 1
             # YOLO + MOT Tracker
-            tracked_vehicles, _ = cv_engine.detect_and_track(camera_id, frame, conf_threshold=0.30)
+            tracked_vehicles, class_counts = cv_engine.detect_and_track(camera_id, frame, conf_threshold=0.30)
             detections_found += len(tracked_vehicles)
+            last_frame_tracks = tracked_vehicles
 
             # Record in analytics
             intersection_id = camera_id[4:6] if len(camera_id) >= 6 else "I1"
             for v in tracked_vehicles:
                 analytics_engine.record_live_vehicle(v["class_label"], intersection_id)
-                tracked_summary.append({
-                    "tracker_id": v["tracker_id"],
-                    "class_label": v["class_label"],
-                    "confidence": v["confidence"],
-                    "bbox": v["bbox"]
-                })
 
             # Check ANPR on largest detected vehicle
             if tracked_vehicles:
@@ -302,14 +367,75 @@ class VideoIngestionService:
 
         cap.release()
 
+        # Compute spatial telemetry on batch frame tracks
+        spatial_telem = spatial_geometry_service.process_frame_spatial_telemetry(
+            camera_id=camera_id,
+            tracked_vehicles=last_frame_tracks,
+            frame_w=1920,
+            frame_h=1080
+        )
+
+        # Cache latest detections on VideoIngestionService with synchronization metadata
+        timestamp_now = time.strftime("%H:%M:%S IST")
+        now_ts = time.time()
+        self.latest_camera_detections[camera_id] = {
+            "frames_read": frames_processed,
+            "frames_processed": frames_processed,
+            "last_frame_idx": frames_processed,
+            "video_time_sec": round(frames_processed / 30.0, 2),
+            "processed_timestamp": now_ts,
+            "vehicles_detected": detections_found,
+            "active_tracks": last_frame_tracks,
+            "spatial": spatial_telem,
+            "last_update": timestamp_now,
+        }
+
         return {
             "status": "success",
             "camera_id": camera_id,
             "source": source,
+            "source_type": "RECORDED_CCTV_REPLAY",
             "frames_processed": frames_processed,
+            "last_frame_idx": frames_processed,
+            "video_time_sec": round(frames_processed / 30.0, 2),
+            "processed_timestamp": now_ts,
+            "detection_age_sec": 0.0,
             "vehicles_detected_count": detections_found,
             "plates_spotted_count": plates_spotted,
-            "sample_tracks": tracked_summary[:8]
+            "active_tracks": last_frame_tracks,
+            "sample_tracks": last_frame_tracks[:8],
+            "spatial": spatial_telem,
+            "last_update": timestamp_now
         }
+
+    def get_camera_spatial_telemetry(self, camera_id: str) -> Dict[str, Any]:
+        """Returns the most recent spatial telemetry for a camera."""
+        if camera_id in self.workers and self.workers[camera_id].last_spatial_telem:
+            telem = dict(self.workers[camera_id].last_spatial_telem)
+            telem["is_data_available"] = True
+            telem["data_quality"] = "ACTIVE_REPLAY_STREAM"
+            telem["worker_inference_fps"] = self.workers[camera_id].inference_fps
+            telem["worker_inference_latency_ms"] = self.workers[camera_id].mean_inference_latency_ms
+            return telem
+        cached = self.latest_camera_detections.get(camera_id, {})
+        if "spatial" in cached and cached["spatial"]:
+            telem = dict(cached["spatial"])
+            telem["is_data_available"] = True
+            telem["data_quality"] = "CACHED_BATCH"
+            return telem
+        # Fallback to empty spatial report with explicit data unavailable flag
+        telem = spatial_geometry_service.process_frame_spatial_telemetry(camera_id, [])
+        telem["is_data_available"] = False
+        telem["data_quality"] = "DATA_UNAVAILABLE"
+        return telem
+
+    def get_intersection_spatial_demand(self, intersection_id: str) -> Dict[str, Any]:
+        """Aggregates spatial approach queues and waiting demand across cameras for an intersection."""
+        telemetries = {}
+        target_cameras = [f"CAM_{intersection_id}_NORTH", f"CAM_{intersection_id}_SOUTH",
+                          f"CAM_{intersection_id}_EAST", f"CAM_{intersection_id}_WEST"]
+        for cid in target_cameras:
+            telemetries[cid] = self.get_camera_spatial_telemetry(cid)
+        return spatial_geometry_service.get_intersection_approach_demand(intersection_id, telemetries)
 
 video_ingestion_service = VideoIngestionService()

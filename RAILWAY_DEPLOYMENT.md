@@ -1,4 +1,4 @@
-# Deploying Trinetra Backend to Railway (Railpack / Nixpacks)
+# Deploying NexTrAI Backend to Railway (Railpack / Nixpacks)
 
 This guide walks you through deploying the FastAPI backend on [Railway](https://railway.app/) using **Railpack / Nixpacks** (no Docker required).
 
@@ -6,7 +6,7 @@ This guide walks you through deploying the FastAPI backend on [Railway](https://
 
 ## What We Configured For Railpack
 The project now includes all files required for Railpack v0.39.0+ and Nixpacks auto-detection:
-- `requirements.txt` (Dependencies: FastAPI, Uvicorn standard with WebSockets support, Pydantic, httpx)
+- `requirements.txt` (Dependencies: FastAPI, Uvicorn standard with WebSockets support, Pydantic, httpx, google-genai)
 - `start.sh` (Auto-detects backend directory and binds to Railway's dynamic `$PORT`)
 - `Procfile` (Standard web worker process runner)
 - `railway.json` & `nixpacks.toml` (Healthcheck on `/api/health`, Nixpacks build instructions)
@@ -29,7 +29,7 @@ git push origin main
 
 1. Go to [railway.app](https://railway.app/) and log in.
 2. Click **"New Project"** -> **"Deploy from GitHub repo"**.
-3. Select your repository: `NexGenX` (or your repo name).
+3. Select your repository: `NexTrAI` (or your repo name).
 4. Railway will automatically detect the Python environment via `requirements.txt` and start the build with Railpack.
 
 *(Optional)* If you only want to build the backend service:
@@ -43,8 +43,8 @@ In your Railway Project Dashboard -> **Variables** tab, add:
 
 | Variable Name | Recommended Value | Description |
 | :--- | :--- | :--- |
-| `FEATHERLESS_API_KEY` | *(Your Featherless AI API key)* | Optional for LLM reasoning |
-| `FEATHERLESS_MODEL` | `meta-llama/Meta-Llama-3.1-70B-Instruct` | Target LLM model |
+| `GEMINI_API_KEY` | *(Your Google Gemini API key)* | Optional for Gemini AI assistant and traffic summaries |
+| `GEMINI_MODEL` | `gemini-3.5-flash` | Target Gemini model |
 | `ENVIRONMENT` | `production` | Deployment mode |
 | `CORS_ORIGINS` | `*` *(or your frontend domain)* | Allowed CORS origins |
 
@@ -57,7 +57,7 @@ In your Railway Project Dashboard -> **Variables** tab, add:
 1. In Railway, click on your backend service.
 2. Go to the **Settings** tab.
 3. Scroll down to **Networking** -> **Public Networking**.
-4. Click **"Generate Domain"** (e.g. `trinetra-backend.up.railway.app`).
+4. Click **"Generate Domain"** (e.g. `nextrai-backend.up.railway.app`).
 
 ---
 

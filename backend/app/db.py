@@ -40,7 +40,8 @@ async def get_db():
 async def init_db():
     """Initializes tables and populates default seed data if empty."""
     from app.models.db_models import (
-        CameraModel, IntersectionModel, WatchlistModel, DetectionModel, AlertModel, TrafficMetricModel
+        CameraModel, IntersectionModel, WatchlistModel, DetectionModel, AlertModel, TrafficMetricModel,
+        EmergencyEventModel, CorridorScheduleModel
     )
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

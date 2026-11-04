@@ -3,12 +3,13 @@ import Header from './components/Header';
 import Navigation from './components/Navigation';
 import HeroSection from './components/HeroSection';
 import NetworkOverview from './components/NetworkOverview';
-import GISTrajectoryMap from './components/GISTrajectoryMap';
+import HyderabadTrafficMap from './components/HyderabadTrafficMap';
 import PlateTrajectorySearch from './components/PlateTrajectorySearch';
 import ANPRSightingsFeed from './components/ANPRSightingsFeed';
 import TrafficAnalyticsPanel from './components/TrafficAnalyticsPanel';
 import WatchlistManager from './components/WatchlistManager';
 import TrafficNetworkMap from './components/TrafficNetworkMap';
+import ScenarioDemoPresets from './components/ScenarioDemoPresets';
 import EventMonitor from './components/EventMonitor';
 import SignalStatus from './components/SignalStatus';
 import SafetyTestPanel from './components/SafetyTestPanel';
@@ -99,6 +100,21 @@ export default function App() {
       .then(fetchState);
   };
 
+  const handleTriggerEvent = (eventType, intersectionId) => {
+    fetch(getApiUrl('/api/simulation/event'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event_type: eventType,
+        intersection_id: intersectionId,
+        approach: 'NORTH'
+      })
+    })
+      .then(res => res.json())
+      .then(() => fetchState())
+      .catch(err => console.warn('Trigger event error:', err));
+  };
+
   const handleSelectPlateForTracking = (plate) => {
     fetch(getApiUrl(`/api/trajectories/${plate}`))
       .then(res => res.json())
@@ -157,8 +173,8 @@ export default function App() {
           activeCorridors={activeCorridors}
         />
 
-        {/* 2. Real GIS Spatial Trajectory Map (Hyderabad Smart Corridor) */}
-        <GISTrajectoryMap 
+        {/* 2. Interactive Real GIS Traffic & Trajectory Map (Hyderabad Smart Corridor) */}
+        <HyderabadTrafficMap 
           activeTrajectory={activeTrajectory}
           onSelectPlate={handleSelectPlateForTracking}
         />
@@ -190,6 +206,12 @@ export default function App() {
         {/* 8. 4-Way Left-Hand Traffic (LHT) Intersection Visualizers (Preserved) */}
         <TrafficNetworkMap intersections={intersections} />
 
+        {/* 8.5 Scenario Simulation 1-Click Presets */}
+        <ScenarioDemoPresets 
+          onTriggerEvent={handleTriggerEvent} 
+          onClearEvents={handleClearEvents} 
+        />
+
         {/* 9. Live Event Monitor Table (Preserved) */}
         <EventMonitor 
           activeEvents={activeEvents}
@@ -199,10 +221,10 @@ export default function App() {
         {/* 10. Signal Status & Movement Permitted States (Preserved) */}
         <SignalStatus intersections={intersections} />
 
-        {/* 11. Deterministic Movement Safety Test Suite for Judges (Preserved) */}
+        {/* 11. Deterministic Movement Safety Test Suite (Preserved) */}
         <SafetyTestPanel />
 
-        {/* 12. Autonomous AI Reasoning Layer via Featherless (Preserved) */}
+        {/* 12. Autonomous AI Reasoning & Gemini Intelligence Layer (Preserved) */}
         <AIReasoningPanel />
 
         {/* 13. System Information Disclosure (Preserved) */}
@@ -212,10 +234,10 @@ export default function App() {
       {/* Institutional Footer */}
       <footer className="gov-footer">
         <div>
-          <strong>NexTrAI</strong> — City-Wide AI Engine for Multi-Camera ANPR Trajectory Tracking & Urban Traffic Analytics
+          <strong>NexTrAI</strong> — Urban Traffic Intelligence & Management Platform
         </div>
         <div>
-          Bharat Electronics Limited (BEL) | Smart India Hackathon PS 26127 Prototype
+          Intelligent Transportation Systems (ITS) — City-Scale Traffic Monitoring & Optimization
         </div>
         <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: '#64748b' }}>
           © 2026 NexTrAI. All rights reserved.
